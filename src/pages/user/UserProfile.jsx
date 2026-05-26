@@ -97,7 +97,7 @@ const UserProfile = () => {
                                     <tbody className="divide-y">
                                         {orders.map(o => (
                                             <tr key={o.id} className="hover:bg-slate-50">
-                                                <td className="py-4 font-bold text-[#008061]">#{String(o.orderCode || o.id).slice(-6)}</td>
+                                                <td className="py-4 font-bold text-[#008061]">#{String(o.orderCode)}</td>
                                                 <td className="py-4 font-bold">{o.totalPrice?.toLocaleString()}đ</td>
                                                 <td className="py-4 text-center"><span className={`px-2 py-1 rounded text-[10px] font-bold ${getStatusConfig(o.status).classes}`}>{getStatusConfig(o.status).label}</span></td>
                                                 <td className="py-4 text-right">

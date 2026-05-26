@@ -58,16 +58,21 @@ const Checkout = () => {
         setIsProcessing(true);
         try {
             const response = await OrderService.createOrder(cartId, paymentMethod);
+            console.log("Full API Response thực tế:", response);
 
-            console.log("Full API Response:", response);
             const result = response?.data?.data || response?.data || response;
-            const paymentUrl = result?.paymentUrl || result?.data?.paymentUrl;
-            if (paymentUrl) {
+            const paymentUrl = result?.paymentUrl || response?.paymentUrl;
+
+            if (paymentMethod === 'VNPAY' && paymentUrl) {
                 window.location.href = paymentUrl;
-            } else {
-                toast.success("Đặt hàng thành công!");
-                navigate('/my-orders');
+                return;
             }
+            toast.success("Đặt hàng thành công!");
+
+            setTimeout(() => {
+                navigate('/');
+            }, 500);
+
         } catch (error) {
             console.error("Lỗi đặt hàng chi tiết:", error);
             const errorMsg = error.response?.data?.message ||
