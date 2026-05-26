@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle, XCircle } from "lucide-react";
-import { cartService } from "../../service/cart/cartService";
 
 const PaymentSuccess = () => {
     const location = useLocation();
