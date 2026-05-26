@@ -1,281 +1,324 @@
 import React, { useState } from 'react';
-import {
-  Form,
-  Input,
- Button,
-  Checkbox,
-  message,
-} from 'antd';
-
-import {
-  Mail,
-  Lock,
-  Store,
-  User,
-} from 'lucide-react';
-
+import { Mail, Lock, User, ArrowLeft, Phone, Calendar, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-import '../../styles/Login.scss';
+import toast, { Toaster } from 'react-hot-toast';
+import AuthService from '../../service/auth/AuthService';
+import { jwtDecode } from "jwt-decode";
 
 const AuthPage = () => {
-  const [loading, setLoading] = useState(false);
-  const [isRegister, setIsRegister] = useState(false);
-
   const navigate = useNavigate();
 
-  const onFinish = (values) => {
-    setLoading(true);
+  const [loading, setLoading] = useState(false);
+  const [isRegister, setIsRegister] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-    setTimeout(() => {
-      setLoading(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    fullName: '',
+    phone: '',
+    birthday: '',
+    gender: true // Mặc định là Nam (true)
+  });
 
-      if (isRegister) {
-        message.success('Tạo tài khoản thành công!');
-      } else {
-        message.success('Đăng nhập thành công!');
-      }
-
-      navigate('/admin');
-    }, 1200);
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
+  const toggleMode = () => {
+    setIsRegister(prev => !prev);
+    setFormData({
+      email: '',
+      password: '',
+      confirmPassword: '',
+      fullName: '',
+      phone: '',
+      birthday: '',
+      gender: true // Reset giới tính khi chuyển chế độ
+    });
+  };
+
+  const onFinish = async (e) => {
+    e.preventDefault();
+
+    if (isRegister) {
+      if (formData.password !== formData.confirmPassword) {
+        toast.error('Mật khẩu xác nhận không khớp!');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const payload = {
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+          phone: formData.phone,
+          birthday: formData.birthday || null,
+          gender: formData.gender, // Đưa giới tính vào payload
+          point: 0
+        };
+
+        await AuthService.register(payload);
+
+        toast.success('Đăng ký tài khoản thành công! 🎉');
+        setIsRegister(false);
+        // Reset form đăng ký
+        setFormData({ email: '', password: '', confirmPassword: '', fullName: '', phone: '', birthday: '', gender: true });
+      } catch (error) {
+        toast.error(error?.message || 'Đăng ký thất bại, thử lại sau!');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setLoading(true);
+      try {
+        await AuthService.login(formData.email, formData.password);
+        toast.success('Đăng nhập thành công! Chào mừng bạn.');
+        const token = localStorage.getItem("accessToken");
+        const user = jwtDecode(token);
+        if (user.role === 'ADMIN') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
+      } catch (error) {
+        toast.error(error?.message || 'Tài khoản hoặc mật khẩu không đúng');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const inputTailwindClass = "w-full bg-slate-50 text-slate-900 font-semibold placeholder-gray-400 border border-slate-200 rounded-xl pl-11 pr-4 py-3.5 outline-none focus:bg-white focus:ring-2 focus:ring-[#008061]/20 focus:border-[#008061] transition-all text-sm";
+
   return (
-    <div className="auth-container">
+    <div className="flex min-h-screen bg-white relative font-sans">
 
-      {/* BÊN TRÁI */}
-      <div className="auth-left">
+      <Toaster position="top-right" reverseOrder={false} />
 
+      {/* Nút quay lại trang chủ */}
+      <button
+        onClick={() => navigate('/')}
+        className="absolute top-6 left-6 z-50 flex items-center gap-2 text-gray-600 hover:text-[#008061] bg-white shadow-md border border-gray-100 px-4 py-2 rounded-full transition-all text-sm font-bold active:scale-95"
+      >
+        <ArrowLeft className="w-4 h-4" /> Trang chủ
+      </button>
+
+      {/* KHUNG TRÁI: HÌNH ẢNH */}
+      <div className="hidden lg:flex w-1/2 relative bg-[#008061] overflow-hidden">
         <img
-          src="https://i.pinimg.com/736x/5d/db/e9/5ddbe9549cf52c8db323da16eb4bf3da.jpg"
-          alt="7-Eleven"
-          className="auth-image"
+          src="https://images.unsplash.com/photo-1601599561096-f87c95fff1e9?q=80&w=1200"
+          className="absolute inset-0 w-full h-full object-cover"
+          alt="auth"
         />
-
-        <div className="auth-overlay"></div>
-
-        <div className="auth-left-content">
-
-          <div>
-            <div className="brand-box">
-              <Store className="brand-icon" />
-            </div>
-
-            <h1>7-Eleven</h1>
-
-            <p>Hệ thống quản lý cửa hàng thông minh</p>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#008061]/95 via-[#008061]/70 to-black/30" />
+        <div className="absolute inset-0 flex flex-col justify-end p-16 text-white z-10 pb-20">
+          <h2 className="text-4xl lg:text-5xl font-black leading-tight drop-shadow-lg mb-6 max-w-sm">
+            Nền tảng mua sắm <br />
+            <span className="text-[#ffcb05]">trực tuyến nhanh chóng</span>
+          </h2>
+          <div className="text-3xl font-black text-white tracking-tighter leading-none flex items-center">
+            <span className="text-4xl text-[#e4252b]">7</span>
+            <span className="text-green-200">-ELEVEn</span>
           </div>
-
-          <div className="auth-left-bottom">
-
-            <h2>
-              Nền tảng quản lý <br />
-              cửa hàng hiện đại
-            </h2>
-
-          </div>
-
         </div>
       </div>
 
-      {/* BÊN PHẢI */}
-      <div className="auth-right">
+      {/* KHUNG PHẢI: FORM */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-[#f9fafb]">
+        <div className="w-full max-w-[440px] bg-white p-8 sm:p-10 rounded-3xl shadow-[0_4px_25px_rgba(0,0,0,0.04)] border border-gray-100 mt-12 lg:mt-0">
 
-        <div className="auth-form-wrapper">
+          <h2 className="text-3xl font-black text-center text-gray-900 mb-2">
+            {isRegister ? 'Tạo tài khoản' : 'Chào mừng trở lại!'}
+          </h2>
 
-          <div className="auth-header">
+          <p className="text-center text-gray-500 font-semibold text-sm mb-6">
+            {isRegister ? 'Điền thông tin để đăng ký thành viên' : 'Đăng nhập để bắt đầu mua sắm'}
+          </p>
 
-            <div className="logo-circle">
-              <Store className="logo-icon" />
-            </div>
+          <form onSubmit={onFinish} className="flex flex-col gap-4">
 
-            <h2>
-              {isRegister
-                ? 'Tạo tài khoản'
-                : 'Chào mừng trở lại'}
-            </h2>
-
-            <p>
-              {isRegister
-                ? 'Đăng ký để tiếp tục'
-                : 'Đăng nhập vào hệ thống'}
-            </p>
-
-          </div>
-
-          <Form
-            layout="vertical"
-            onFinish={onFinish}
-            size="large"
-            initialValues={{ remember: true }}
-          >
-
+            {/* HỌ VÀ TÊN */}
             {isRegister && (
-              <Form.Item
-                name="username"
-                rules={[
-                  {
-                    required: true,
-                    message:
-                      'Vui lòng nhập tên người dùng!',
-                  },
-                ]}
-              >
-                <Input
-                  prefix={
-                    <User className="input-icon" />
-                  }
-                  placeholder="Tên người dùng"
-                  className="glass-input"
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <User className="w-5 h-5 text-gray-400" />
+                </div>
+                <input
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  placeholder="Họ và tên"
+                  className={inputTailwindClass}
+                  required
+                  minLength="2"
+                  maxLength="100"
                 />
-              </Form.Item>
-            )}
-
-            <Form.Item
-              name="email"
-              rules={[
-                {
-                  required: true,
-                  message:
-                    'Vui lòng nhập email!',
-                },
-                {
-                  type: 'email',
-                  message:
-                    'Email không hợp lệ!',
-                },
-              ]}
-            >
-              <Input
-                prefix={
-                  <Mail className="input-icon" />
-                }
-                placeholder="admin@7eleven.com"
-                className="glass-input"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="password"
-              rules={[
-                {
-                  required: true,
-                  message:
-                    'Vui lòng nhập mật khẩu!',
-                },
-              ]}
-            >
-              <Input.Password
-                prefix={
-                  <Lock className="input-icon" />
-                }
-                placeholder="••••••••"
-                className="glass-input"
-              />
-            </Form.Item>
-
-            {isRegister && (
-              <Form.Item
-                name="confirmPassword"
-                dependencies={['password']}
-                rules={[
-                  {
-                    required: true,
-                    message:
-                      'Vui lòng xác nhận mật khẩu!',
-                  },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (
-                        !value ||
-                        getFieldValue('password') === value
-                      ) {
-                        return Promise.resolve();
-                      }
-
-                      return Promise.reject(
-                        new Error(
-                          'Mật khẩu xác nhận không khớp!'
-                        )
-                      );
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password
-                  prefix={
-                    <Lock className="input-icon" />
-                  }
-                  placeholder="Xác nhận mật khẩu"
-                  className="glass-input"
-                />
-              </Form.Item>
-            )}
-
-            {!isRegister && (
-              <div className="auth-options">
-
-                <Form.Item
-                  name="remember"
-                  valuePropName="checked"
-                  noStyle
-                >
-                  <Checkbox className="remember-checkbox">
-                    Ghi nhớ đăng nhập
-                  </Checkbox>
-                </Form.Item>
-
-                <a
-                  href="#"
-                  className="forgot-link"
-                >
-                  Quên mật khẩu?
-                </a>
-
               </div>
             )}
 
-            <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                className="submit-btn"
-              >
-                {isRegister
-                  ? 'Tạo tài khoản'
-                  : 'Đăng nhập'}
-              </Button>
-            </Form.Item>
+            {/* SỐ ĐIỆN THOẠI */}
+            {isRegister && (
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Phone className="w-5 h-5 text-gray-400" />
+                </div>
+                <input
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="Số điện thoại"
+                  type="tel"
+                  pattern="^(0|\+84)[0-9]{9,10}$"
+                  className={inputTailwindClass}
+                  required
+                />
+              </div>
+            )}
 
-            <div className="switch-auth">
+            {/* NGÀY SINH */}
+            {isRegister && (
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Calendar className="w-5 h-5 text-gray-400" />
+                </div>
+                <input
+                  type="date"
+                  name="birthday"
+                  value={formData.birthday}
+                  onChange={handleChange}
+                  // Ngăn chọn ngày trong tương lai
+                  max={new Date().toISOString().split("T")[0]}
+                  className={inputTailwindClass}
+                />
+              </div>
+            )}
 
-              <span>
-                {isRegister
-                  ? 'Đã có tài khoản?'
-                  : 'Chưa có tài khoản?'}
-              </span>
+            {/* GIỚI TÍNH - Đã căn chỉnh lại cho cân đối */}
+            {isRegister && (
+              <div className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-4 py-3.5 flex items-center justify-center gap-12 transition-all">
+                <label className="flex items-center gap-3 cursor-pointer active:scale-95 transition-transform">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="true"
+                    checked={formData.gender === true}
+                    onChange={() => setFormData({ ...formData, gender: true })}
+                    className="w-5 h-5 text-[#008061] bg-white border-gray-300 focus:ring-[#008061]/20 focus:ring-2 accent-[#008061]"
+                  />
+                  <span className="text-sm font-semibold text-slate-700">Nam</span>
+                </label>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setIsRegister(!isRegister)
-                }
-                className="switch-btn"
-              >
-                {isRegister
-                  ? 'Đăng nhập'
-                  : 'Đăng ký'}
-              </button>
+                <label className="flex items-center gap-3 cursor-pointer active:scale-95 transition-transform">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="false"
+                    checked={formData.gender === false}
+                    onChange={() => setFormData({ ...formData, gender: false })}
+                    className="w-5 h-5 text-[#008061] bg-white border-gray-300 focus:ring-[#008061]/20 focus:ring-2 accent-[#008061]"
+                  />
+                  <span className="text-sm font-semibold text-slate-700">Nữ</span>
+                </label>
+              </div>
+            )}
 
+            {/* EMAIL */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Mail className="w-5 h-5 text-gray-400" />
+              </div>
+              <input
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Email của bạn"
+                type="email"
+                className={inputTailwindClass}
+                required
+              />
             </div>
 
-          </Form>
+            {/* MẬT KHẨU */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Lock className="w-5 h-5 text-gray-400" />
+              </div>
+              <input
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Mật khẩu (Tối thiểu 6 ký tự)"
+                className="w-full bg-slate-50 text-slate-900 font-semibold placeholder-gray-400 border border-slate-200 rounded-xl pl-11 pr-12 py-3.5 outline-none focus:bg-white focus:ring-2 focus:ring-[#008061]/20 focus:border-[#008061] transition-all text-sm"
+                required
+                minLength="6"
+                maxLength="50"
+              />
+              {/* Nút ẩn/hiện mật khẩu */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 active:scale-90 transition-transform"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            {/* XÁC NHẬN MẬT KHẨU */}
+            {isRegister && (
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Lock className="w-5 h-5 text-gray-400" />
+                </div>
+                <input
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Xác nhận mật khẩu"
+                  className={inputTailwindClass}
+                  required
+                />
+              </div>
+            )}
+
+            {/* NÚT SUBMIT */}
+            <button
+              disabled={loading}
+              type="submit"
+              className="w-full text-white bg-[#008061] hover:bg-[#006c52] font-bold rounded-xl text-base px-5 py-3.5 flex justify-center items-center shadow-lg shadow-[#008061]/10 active:scale-[0.99] transition-all mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                isRegister ? 'Đăng ký tài khoản' : 'Đăng nhập'
+              )}
+            </button>
+
+          </form>
+
+          {/* CHUYỂN ĐỔI CHẾ ĐỘ ĐĂNG NHẬP / ĐĂNG KÝ */}
+          <div className="text-center mt-6 flex items-center justify-center gap-2 text-sm">
+            <span className="text-gray-500 font-medium">
+              {isRegister ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'}
+            </span>
+            <button
+              type="button"
+              onClick={toggleMode}
+              className="text-[#008061] font-bold hover:text-[#006c52] bg-transparent border-none p-0 transition-colors active:scale-95"
+            >
+              {isRegister ? 'Đăng nhập ngay' : 'Đăng ký thành viên'}
+            </button>
+          </div>
 
         </div>
-
       </div>
-
     </div>
   );
 };

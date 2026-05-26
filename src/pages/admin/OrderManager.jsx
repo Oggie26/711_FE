@@ -1,192 +1,332 @@
-import React, { useState } from 'react';
-import { Table, Input, Button, Drawer, Divider, Space } from 'antd';
-import { Search, Eye } from 'lucide-react';
-
-const mockOrders = [
-  { id: '#ORD-711-2026-X8F9', customer: 'John Doe', date: '2026-05-23 08:30', total: 12.50, status: 'Completed', items: 3 },
-  { id: '#ORD-711-2026-B2V1', customer: 'Jane Smith', date: '2026-05-23 09:15', total: 4.98, status: 'Processing', items: 2 },
-  { id: '#ORD-711-2026-M4N8', customer: 'Alex Johnson', date: '2026-05-23 09:45', total: 24.99, status: 'Pending', items: 5 },
-];
+import React, { useState, useEffect } from 'react';
+import { Search, Eye, X, DollarSign, ShoppingBag, CheckCircle, Clock, User as UserIcon, CreditCard, Banknote, ChevronLeft, ChevronRight } from 'lucide-react';
+import toast from 'react-hot-toast';
+import OrderService from '../../service/order/OrderService';
 
 const OrderManager = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  const columns = [
-    {
-      title: 'Order ID',
-      dataIndex: 'id',
-      key: 'id',
-      render: (text) => <span className="font-semibold text-emerald-400">{text}</span>,
-    },
-    {
-      title: 'Customer',
-      dataIndex: 'customer',
-      key: 'customer',
-      render: (name) => <span className="text-gray-200">{name}</span>,
-    },
-    {
-      title: 'Date',
-      dataIndex: 'date',
-      key: 'date',
-      render: (date) => <span className="text-gray-300">{date}</span>,
-    },
-    {
-      title: 'Total',
-      dataIndex: 'total',
-      key: 'total',
-      render: (total) => <span className="font-bold text-white">${total.toFixed(2)}</span>,
-    },
-    {
-      title: 'Status',
-      key: 'status',
-      dataIndex: 'status',
-      render: (status) => {
-        let bg = 'rgba(56, 189, 248, 0.15)'; // Processing (blue)
-        let border = 'rgba(56, 189, 248, 0.3)';
-        let text = '#38bdf8';
-        
-        if (status === 'Completed') {
-          bg = 'rgba(16, 185, 129, 0.15)';
-          border = 'rgba(16, 185, 129, 0.3)';
-          text = '#34d399';
-        } else if (status === 'Pending') {
-          bg = 'rgba(245, 158, 11, 0.15)';
-          border = 'rgba(245, 158, 11, 0.3)';
-          text = '#fbbf24';
-        }
-        
-        return (
-          <span 
-            className="px-2.5 py-1 rounded-lg text-xs font-semibold border tracking-wider"
-            style={{ backgroundColor: bg, borderColor: border, color: text }}
-          >
-            {status}
-          </span>
-        );
-      },
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (_, record) => (
-        <Button 
-          type="text" 
-          icon={<Eye className="w-4 h-4 text-emerald-400 group-hover:text-emerald-300" />} 
-          onClick={() => {
-            setSelectedOrder(record);
-            setDrawerOpen(true);
-          }}
-          className="hover:bg-white/10 flex items-center justify-center rounded-lg group"
-        />
-      ),
-    },
-  ];
+  // --- STATE PHÂN TRANG & TÌM KIẾM ---
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    fetchOrders("", 0);
+  }, []);
+
+  // Cập nhật hàm fetch có truyền page và size = 10
+  const fetchOrders = async (keyword = searchTerm, page = 0) => {
+    setLoading(true);
+    try {
+      const response = await OrderService.searchOrders(keyword, page, 10); // Lấy 10 đơn/trang
+
+      const responseData = response?.data?.data || {};
+      const dataList = responseData.data || responseData || [];
+
+      setOrders(Array.isArray(dataList) ? dataList : []);
+      setTotalPages(responseData.totalPages || 1);
+      setCurrentPage(responseData.page || 0);
+    } catch (error) {
+      toast.error("Không thể tải danh sách đơn hàng!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    // Khi gõ tìm kiếm mới, luôn đưa về trang đầu tiên (0)
+    fetchOrders(value, 0);
+  };
+
+  const handleViewDetail = async (order) => {
+    try {
+      setLoading(true);
+      const response = await OrderService.getOrderById(order.id);
+      const orderDetail = response?.data?.data || response?.data || response;
+
+      if (orderDetail) {
+        setSelectedOrder(orderDetail);
+        setDrawerOpen(true);
+      } else {
+        toast.error("Dữ liệu chi tiết rỗng!");
+      }
+    } catch (error) {
+      toast.error("Không thể tải chi tiết đơn hàng!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusConfig = (status) => {
+    switch (status) {
+      case 'PENDING':
+        return { label: 'Chờ thanh toán', classes: 'bg-amber-50 text-amber-600 border-amber-200' };
+      case 'PAYMENT_SUCCESS':
+        return { label: 'Thành công', classes: 'bg-emerald-50 text-emerald-600 border-emerald-200' };
+      case 'PAYMENT_FAILED':
+        return { label: 'Thất bại', classes: 'bg-red-50 text-red-600 border-red-200' };
+      case 'CANCELLED':
+        return { label: 'Đã hủy', classes: 'bg-slate-100 text-slate-500 border-slate-300' };
+      default:
+        return { label: status || 'Chưa rõ', classes: 'bg-sky-50 text-sky-600 border-sky-200' };
+    }
+  };
+
+  const getPaymentConfig = (payment) => {
+    // ĐÃ FIX: Chuyển 'COD' thành 'CASH' để bắt đúng dữ liệu từ Backend
+    switch (payment) {
+      case 'VNPAY':
+        return { label: 'Thanh toán qua VNPAY', classes: 'bg-blue-50 text-blue-700 border-blue-200', icon: CreditCard };
+      case 'CASH':
+        return { label: 'Thanh toán tiền mặt (CASH)', classes: 'bg-orange-50 text-orange-700 border-orange-200', icon: Banknote };
+      default:
+        return { label: payment || 'Chưa rõ', classes: 'bg-slate-100 text-slate-600 border-slate-200', icon: DollarSign };
+    }
+  };
+
+  const stats = orders.reduce((acc, order) => {
+    acc.total += 1;
+    if (order.status === 'PAYMENT_SUCCESS') acc.completed += 1;
+    else if (order.status === 'CANCELLED' || order.status === 'PAYMENT_FAILED') acc.cancelled += 1;
+    acc.revenue += (order.totalPrice || 0);
+    return acc;
+  }, { total: 0, completed: 0, cancelled: 0, revenue: 0 });
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "Không có dữ liệu";
+    return new Date(dateString).toLocaleString('vi-VN', {
+      hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+  };
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white m-0 tracking-wide">Orders</h1>
-        <p className="text-gray-400 m-0 mt-1">View and manage customer orders</p>
+    <div className="w-full p-6 bg-slate-50 min-h-screen">
+      <div className="mb-8">
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Quản lý đơn hàng</h1>
       </div>
 
-      <div className="mb-6 max-w-md">
-        <Input 
-          size="large" 
-          placeholder="Search by Order ID or Customer..." 
-          prefix={<Search className="text-gray-400 w-4 h-4" />} 
-          className="bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 focus:bg-white/10 focus:border-white/20"
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        {[
+          { title: "Tổng đơn", val: stats.total, icon: ShoppingBag, color: "text-sky-600" },
+          { title: "Thành công", val: stats.completed, icon: CheckCircle, color: "text-emerald-600" },
+          { title: "Thất bại/Hủy", val: stats.cancelled, icon: X, color: "text-red-600" },
+          { title: "Doanh thu", val: `${stats.revenue.toLocaleString()} ₫`, icon: DollarSign, color: "text-[#008061]" }
+        ].map((item, idx) => (
+          <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center ${item.color}`}><item.icon /></div>
+            <div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase">{item.title}</p>
+              <p className="text-md font-black text-slate-900">{item.val}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mb-6 max-w-md relative">
+        <Search className="absolute left-3 top-3 text-slate-400 w-4 h-4" />
+        <input
+          type="text"
+          placeholder="Tìm mã đơn hàng..."
+          className="w-full pl-10 py-2.5 rounded-xl border border-slate-200 focus:border-[#008061] outline-none"
+          value={searchTerm}
+          onChange={handleSearch}
         />
       </div>
 
-      <Table 
-        columns={columns} 
-        dataSource={mockOrders} 
-        rowKey="id" 
-        pagination={{ pageSize: 10 }}
-        className="glass-table border-none"
-      />
+      {/* KHUNG BẢNG & PHÂN TRANG */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 text-xs text-slate-400 uppercase">
+              <tr>
+                <th className="px-6 py-4 whitespace-nowrap">Mã đơn</th>
+                <th className="px-6 py-4 whitespace-nowrap">Thanh toán</th>
+                <th className="px-6 py-4 whitespace-nowrap">Tổng tiền</th>
+                <th className="px-6 py-4 whitespace-nowrap">Trạng thái</th>
+                <th className="px-6 py-4 text-center whitespace-nowrap">Chi tiết</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr>
+                  <td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-medium">Đang tải dữ liệu...</td>
+                </tr>
+              ) : orders.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-medium">Không tìm thấy đơn hàng nào</td>
+                </tr>
+              ) : (
+                orders.map(order => {
+                  const statusObj = getStatusConfig(order.status);
+                  const paymentObj = getPaymentConfig(order.payment);
+                  const PaymentIcon = paymentObj.icon;
 
-      <Drawer
-        title={<span className="font-bold text-lg text-white">Order Details</span>}
-        placement="right"
-        onClose={() => setDrawerOpen(false)}
-        open={drawerOpen}
-        width={500}
-        dropdownClassName="ant-select-dropdown"
-      >
-        {selectedOrder && (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-emerald-400 m-0">{selectedOrder.id}</h2>
-              {(() => {
-                let bg = 'rgba(56, 189, 248, 0.15)';
-                let border = 'rgba(56, 189, 248, 0.3)';
-                let text = '#38bdf8';
-                if (selectedOrder.status === 'Completed') {
-                  bg = 'rgba(16, 185, 129, 0.15)';
-                  border = 'rgba(16, 185, 129, 0.3)';
-                  text = '#34d399';
-                } else if (selectedOrder.status === 'Pending') {
-                  bg = 'rgba(245, 158, 11, 0.15)';
-                  border = 'rgba(245, 158, 11, 0.3)';
-                  text = '#fbbf24';
-                }
-                return (
-                  <span 
-                    className="px-3 py-1 rounded-lg text-sm font-semibold border tracking-wider"
-                    style={{ backgroundColor: bg, borderColor: border, color: text }}
-                  >
-                    {selectedOrder.status}
-                  </span>
-                );
-              })()}
-            </div>
+                  return (
+                    <tr key={order.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-[#008061]">{order.orderCode}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-bold border ${paymentObj.classes}`}>
+                          <PaymentIcon className="w-3 h-3" />
+                          {order.payment}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-black">{order.totalPrice?.toLocaleString()} ₫</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${statusObj.classes}`}>
+                          {statusObj.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button onClick={() => handleViewDetail(order)} className="p-2 border border-slate-200 rounded-lg hover:bg-slate-100 text-slate-600 transition-all">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
 
-            <div className="bg-white/5 border border-white/10 p-5 rounded-xl mb-6">
-              <p className="text-gray-400 mb-1 text-sm font-medium">Customer Name</p>
-              <p className="font-bold text-white mb-4 text-base">{selectedOrder.customer}</p>
-              
-              <p className="text-gray-400 mb-1 text-sm font-medium">Order Date</p>
-              <p className="font-bold text-white m-0 text-base">{selectedOrder.date}</p>
-            </div>
+        {/* --- UI PHÂN TRANG --- */}
+        {totalPages > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-white rounded-b-2xl">
+            <p className="text-sm text-slate-500 font-semibold">
+              Trang <span className="text-slate-900 font-bold">{currentPage + 1}</span> / {totalPages}
+            </p>
 
-            <h3 className="font-bold text-white mb-4 text-base">Items ({selectedOrder.items})</h3>
-            <div className="flex flex-col gap-4">
-              <div className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/5">
-                <span className="text-gray-300">Slurpee Cherry x 1</span>
-                <span className="font-semibold text-white">$2.99</span>
-              </div>
-              <div className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/5">
-                <span className="text-gray-300">Big Bite Hot Dog x 2</span>
-                <span className="font-semibold text-white">$6.98</span>
-              </div>
-            </div>
-
-            <Divider className="border-white/10 my-6" />
-
-            <div className="flex justify-between items-center text-lg px-2">
-              <span className="font-bold text-white">Total</span>
-              <span className="font-extrabold text-orange text-xl">${selectedOrder.total.toFixed(2)}</span>
-            </div>
-
-            <div className="mt-8 flex gap-4">
-              <Button 
-                type="primary" 
-                className="flex-1 bg-gradient-to-r from-[#008061] to-[#00a37c] border-none font-semibold h-11"
+            <div className="flex items-center gap-1.5">
+              <button
+                disabled={currentPage === 0}
+                onClick={() => fetchOrders(searchTerm, currentPage - 1)}
+                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Mark as Completed
-              </Button>
-              <Button 
-                danger 
-                className="flex-1 bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300 h-11"
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {/* Render danh sách các trang (1, 2, 3...) */}
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => fetchOrders(searchTerm, i)}
+                  className={`w-8 h-8 rounded-lg text-sm font-bold border transition-colors ${currentPage === i
+                    ? 'bg-[#008061] text-white border-[#008061] shadow-sm'
+                    : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                    }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+
+              <button
+                disabled={currentPage === totalPages - 1}
+                onClick={() => fetchOrders(searchTerm, currentPage + 1)}
+                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Cancel Order
-              </Button>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         )}
-      </Drawer>
+      </div>
+
+      {/* DRAWER CHI TIẾT */}
+      {drawerOpen && selectedOrder && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
+          <div className="w-full sm:w-[460px] bg-white h-full shadow-2xl relative flex flex-col transform transition-transform duration-300 translate-x-0">
+
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Chi tiết hóa đơn</span>
+                <h2 className="text-lg font-black text-[#008061]">{selectedOrder.orderCode}</h2>
+              </div>
+              <button onClick={() => setDrawerOpen(false)} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors">
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 pb-8">
+
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-6 flex flex-col gap-4">
+                <div className="flex justify-between items-center pb-4 border-b border-slate-200/60">
+                  <span className="text-sm font-semibold text-slate-600">Trạng thái</span>
+                  <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${getStatusConfig(selectedOrder.status).classes}`}>
+                    {getStatusConfig(selectedOrder.status).label}
+                  </span>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 flex-shrink-0 mt-0.5">
+                    <UserIcon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Khách hàng</p>
+                    <p className="font-bold text-slate-900 text-sm">{selectedOrder.fullName || "Khách vãng lai"}</p>
+                    {selectedOrder.userId && (
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">ID: {selectedOrder.userId}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Thời gian tạo
+                  </p>
+                  <p className="font-semibold text-slate-700 text-sm">{formatDate(selectedOrder.orderDate)}</p>
+                </div>
+
+                <div className="pt-4 border-t border-slate-200/60">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Phương thức thanh toán</p>
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border ${getPaymentConfig(selectedOrder.payment).classes}`}>
+                    {React.createElement(getPaymentConfig(selectedOrder.payment).icon, { className: "w-4 h-4" })}
+                    {getPaymentConfig(selectedOrder.payment).label}
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="text-sm font-black text-slate-800 mb-3">Danh sách sản phẩm</h3>
+              <div className="flex flex-col gap-3">
+                {selectedOrder.items?.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 p-3 bg-white border border-slate-100 shadow-sm rounded-xl">
+                    <img
+                      src={item.thumbnail || item.productThumbnail || 'https://via.placeholder.com/50'}
+                      alt={item.productName}
+                      className="w-12 h-12 rounded-lg object-cover bg-slate-50 border border-slate-100 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-bold text-slate-900 line-clamp-1 block">{item.productName}</span>
+                      <span className="text-xs font-semibold text-slate-500 block mt-0.5">
+                        {item.price?.toLocaleString()} ₫ <span className="text-slate-300 mx-1">x</span> {item.quantity}
+                      </span>
+                    </div>
+                    <span className="font-black text-[#008061] text-sm flex-shrink-0">
+                      {(item.price * item.quantity).toLocaleString()} ₫
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="h-px bg-slate-100 my-6 w-full"></div>
+
+              <div className="flex justify-between items-center text-base px-2">
+                <span className="font-bold text-slate-800">Tổng thanh toán</span>
+                <span className="font-black text-red-600 text-xl">{selectedOrder.totalPrice?.toLocaleString()} ₫</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };

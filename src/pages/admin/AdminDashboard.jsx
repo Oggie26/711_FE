@@ -1,159 +1,158 @@
-import React from 'react';
-import { Card, Col, Row, Statistic } from 'antd';
-import { DollarSign, ShoppingBag, Users, TrendingUp, Activity, ArrowUpRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { DollarSign, ShoppingBag, Users, Package } from 'lucide-react';
+import DashBoardService from '../../service/dashboard/dashBoardService';
+import toast from 'react-hot-toast';
 
 const AdminDashboard = () => {
-  // Mock data for the weekly sales chart
-  const weeklySales = [
-    { day: 'Mon', amount: 1200, height: '40%' },
-    { day: 'Tue', amount: 1900, height: '65%' },
-    { day: 'Wed', amount: 1500, height: '50%' },
-    { day: 'Thu', amount: 2400, height: '80%' },
-    { day: 'Fri', amount: 2900, height: '95%' },
-    { day: 'Sat', amount: 2100, height: '70%' },
-    { day: 'Sun', amount: 1700, height: '55%' },
-  ];
+  const [stats, setStats] = useState({ revenue: 0, totalOrders: 0, totalUsers: 0, totalProducts: 0 });
+  const [salesData, setSalesData] = useState([]);
+  const [viewType, setViewType] = useState('weekly');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, [viewType]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [resStats, resSales, resUsers] = await Promise.all([
+        DashBoardService.getDashboardStats(),
+        viewType === 'weekly' ? DashBoardService.getWeeklySales() : DashBoardService.getMonthlySales(),
+        DashBoardService.getTotalUsers()
+      ]);
+
+      const statsData = resStats?.data || {};
+      const salesRes = resSales?.data || [];
+      const userData = resUsers?.data || {};
+
+      setStats({
+        revenue: statsData.totalRevenue || 0,
+        totalOrders: statsData.totalOrders || 0,
+        totalUsers: userData.totalUsers || 0,
+        totalProducts: statsData.totalProducts || 0
+      });
+
+      if (viewType === 'monthly') {
+        const allMonths = [
+          { label: "Jan", num: 1 }, { label: "Feb", num: 2 }, { label: "Mar", num: 3 },
+          { label: "Apr", num: 4 }, { label: "May", num: 5 }, { label: "Jun", num: 6 },
+          { label: "Jul", num: 7 }, { label: "Aug", num: 8 }, { label: "Sep", num: 9 },
+          { label: "Oct", num: 10 }, { label: "Nov", num: 11 }, { label: "Dec", num: 12 }
+        ];
+        const monthlyData = allMonths.map(monthObj => {
+          const found = salesRes.find(item => {
+            const m = item.month || item._id; // _id is sometimes used in aggregation
+            if (typeof m === 'number') return m === monthObj.num;
+            if (typeof m === 'string') {
+              return m.substring(0, 3).toLowerCase() === monthObj.label.toLowerCase() ||
+                m === monthObj.num.toString();
+            }
+            return false;
+          });
+          return {
+            label: monthObj.label,
+            amount: found ? (found.revenue || found.total || 0) : 0
+          };
+        });
+        setSalesData(monthlyData);
+      } else {
+        const allDays = [
+          { label: "Mon", num: 2 }, { label: "Tue", num: 3 }, { label: "Wed", num: 4 },
+          { label: "Thu", num: 5 }, { label: "Fri", num: 6 }, { label: "Sat", num: 7 },
+          { label: "Sun", num: 1 } // MongoDB $dayOfWeek: 1 is Sunday
+        ];
+        const weeklyData = allDays.map(dayObj => {
+          const found = salesRes.find(item => {
+            const d = item.dayOfWeek || item.day || item._id; // handling various backend formats
+            if (typeof d === 'number') return d === dayObj.num;
+            if (typeof d === 'string') {
+              return d.substring(0, 3).toLowerCase() === dayObj.label.toLowerCase() ||
+                d === dayObj.num.toString();
+            }
+            return false;
+          });
+          return {
+            label: dayObj.label,
+            amount: found ? (found.revenue || found.total || 0) : 0
+          };
+        });
+        setSalesData(weeklyData);
+      }
+    } catch (error) {
+      console.error("Dashboard error:", error);
+      toast.error("Không thể tải dữ liệu!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const maxAmount = Math.max(...salesData.map(s => s.amount), 1);
+  const chartHeight = 200;
+  const chartWidth = 800;
+  const barWidth = salesData.length === 12 ? 35 : 50;
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white m-0 tracking-wide">Dashboard Overview</h1>
-        <p className="text-gray-400 mt-1">Welcome back to your 7-Eleven Admin Portal</p>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">Dashboard Overview</h1>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard title="Tổng doanh thu" value={`${stats.revenue.toLocaleString()} ₫`} icon={DollarSign} color="text-red-600" />
+        <StatCard title="Tổng đơn hàng" value={`${stats.totalOrders}`} icon={ShoppingBag} color="text-orange-500" />
+        <StatCard title="Người dùng" value={`${stats.totalUsers}`} icon={Users} color="text-blue-600" />
+        <StatCard title="Sản phẩm" value={`${stats.totalProducts}`} icon={Package} color="text-green-700" />
       </div>
 
-      <Row gutter={[24, 24]}>
-        {/* Total Revenue Card */}
-        <Col xs={24} sm={12} lg={6}>
-          <Card 
-            className="glass-card border-none rounded-2xl relative overflow-hidden" 
-            bodyStyle={{ padding: '24px' }}
-          >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-[#008061]/10 rounded-full blur-2xl"></div>
-            <Statistic 
-              title={<span className="text-gray-400 font-medium text-sm">Total Revenue</span>}
-              value={12450.00} 
-              precision={2} 
-              prefix={<DollarSign className="w-5 h-5 text-emerald-400 mr-1" />} 
-              valueStyle={{ color: '#ffffff', fontWeight: '800', fontSize: '28px' }}
-            />
-            <div className="mt-4 flex items-center text-sm text-emerald-400 font-medium">
-              <TrendingUp className="w-4 h-4 mr-1" /> 
-              <span>+15.3% from last month</span>
-            </div>
-          </Card>
-        </Col>
-        
-        {/* Total Orders Card */}
-        <Col xs={24} sm={12} lg={6}>
-          <Card 
-            className="glass-card border-none rounded-2xl relative overflow-hidden" 
-            bodyStyle={{ padding: '24px' }}
-          >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-[#ff6b00]/10 rounded-full blur-2xl"></div>
-            <Statistic 
-              title={<span className="text-gray-400 font-medium text-sm">Total Orders</span>}
-              value={842} 
-              prefix={<ShoppingBag className="w-5 h-5 text-orange mr-1" />} 
-              valueStyle={{ color: '#ffffff', fontWeight: '800', fontSize: '28px' }}
-            />
-            <div className="mt-4 flex items-center text-sm text-emerald-400 font-medium">
-              <TrendingUp className="w-4 h-4 mr-1" /> 
-              <span>+5.2% from last week</span>
-            </div>
-          </Card>
-        </Col>
-
-        {/* Active Users Card */}
-        <Col xs={24} sm={12} lg={6}>
-          <Card 
-            className="glass-card border-none rounded-2xl relative overflow-hidden" 
-            bodyStyle={{ padding: '24px' }}
-          >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl"></div>
-            <Statistic 
-              title={<span className="text-gray-400 font-medium text-sm">Active Users</span>}
-              value={3210} 
-              prefix={<Users className="w-5 h-5 text-blue-400 mr-1" />} 
-              valueStyle={{ color: '#ffffff', fontWeight: '800', fontSize: '28px' }}
-            />
-            <div className="mt-4 flex items-center text-sm text-gray-400 font-medium">
-              <span>Steady growth</span>
-            </div>
-          </Card>
-        </Col>
-
-        {/* System Status Card */}
-        <Col xs={24} sm={12} lg={6}>
-          <Card 
-            className="border-none rounded-2xl bg-gradient-to-br from-[#008061] to-[#004d3a] relative overflow-hidden shadow-lg shadow-emerald-950/40 hover:scale-[1.02] transition-transform duration-300" 
-            bodyStyle={{ padding: '24px' }}
-          >
-            <div className="absolute -right-4 -bottom-4 opacity-10">
-              <Activity className="w-32 h-32 text-white" />
-            </div>
-            <h3 className="text-white/80 text-sm font-medium mb-1">System Status</h3>
-            <div className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-pulse"></span>
-              All Systems Good
-            </div>
-            <div className="w-full bg-white/20 rounded-full h-2 mb-2">
-              <div className="bg-white h-2 rounded-full shadow-inner" style={{ width: '100%' }}></div>
-            </div>
-            <div className="text-xs text-white/70">Refreshed 2 mins ago</div>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Interactive Chart Section */}
-      <div className="mt-8 glass-card rounded-2xl p-6 sm:p-8 border border-white/10 relative">
+      <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
         <div className="flex justify-between items-center mb-8">
-          <div>
-            <h3 className="text-lg font-bold text-white m-0">Weekly Sales Analysis</h3>
-            <p className="text-sm text-gray-400 m-0">Live revenue tracking in USD</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 text-xs text-gray-300 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
-              <span className="w-2 h-2 rounded-full bg-[#008061]"></span> Drinks
-            </span>
-            <span className="flex items-center gap-1.5 text-xs text-gray-300 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
-              <span className="w-2 h-2 rounded-full bg-[#ff6b00]"></span> Food & Snacks
-            </span>
-          </div>
+          <h3 className="text-lg font-bold text-gray-800">Phân tích doanh thu</h3>
+          <select className="bg-gray-100 rounded-lg p-2 text-sm cursor-pointer" value={viewType} onChange={(e) => setViewType(e.target.value)}>
+            <option value="weekly">Theo Tuần</option>
+            <option value="monthly">Theo Tháng</option>
+          </select>
         </div>
 
-        {/* Visual HTML Chart Mockup with Hover Effects */}
-        <div className="h-[280px] flex items-end justify-between gap-2 sm:gap-6 pt-4 border-b border-white/10 px-2 sm:px-6 relative">
-          {/* Grid lines background */}
-          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-            <div className="w-full border-t border-white/5 h-0"></div>
-            <div className="w-full border-t border-white/5 h-0"></div>
-            <div className="w-full border-t border-white/5 h-0"></div>
-            <div className="w-full border-t border-white/5 h-0"></div>
-          </div>
+        <div className="w-full h-[250px] relative">
+          {loading ? (
+            <div className="h-full flex items-center justify-center text-gray-400">Đang tải...</div>
+          ) : (
+            <svg viewBox={`0 0 ${chartWidth} ${chartHeight + 40}`} className="w-full h-full overflow-visible">
+              {salesData.map((item, index) => {
+                const gap = (chartWidth - (salesData.length * barWidth)) / (salesData.length + 1);
+                const x = gap + index * (barWidth + gap);
+                // Cột giá trị 0 vẫn hiện 4px, cột có dữ liệu dùng calc để nổi bật hơn
+                const barHeight = item.amount === 0 ? 4 : Math.max(20, (item.amount / maxAmount) * 160);
+                const y = chartHeight - barHeight;
 
-          {weeklySales.map((item, index) => (
-            <div key={index} className="flex-1 flex flex-col items-center group relative z-1">
-              {/* Tooltip on Hover */}
-              <div className="absolute -top-12 bg-[#1e293b] border border-white/15 px-3 py-1.5 rounded-lg text-xs text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-xl pointer-events-none z-10 whitespace-nowrap">
-                ${item.amount.toLocaleString()}
-              </div>
-
-              {/* Animated Bar */}
-              <div 
-                className="w-8 sm:w-12 rounded-t-lg bg-gradient-to-t from-[#008061]/80 to-[#ff6b00]/80 group-hover:from-[#008061] group-hover:to-[#ff6b00] transition-all duration-500 cursor-pointer shadow-md shadow-black/20 group-hover:shadow-[#008061]/20 group-hover:scale-x-105"
-                style={{ height: item.height }}
-              ></div>
-
-              {/* Day Label */}
-              <span className="text-xs text-gray-400 mt-3 font-semibold group-hover:text-white transition-colors">
-                {item.day}
-              </span>
-            </div>
-          ))}
+                return (
+                  <g key={index} className="group cursor-pointer">
+                    <rect x={x - 20} y={y - 45} width="90" height="30" rx="4" className="fill-gray-800 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <text x={x + 25} y={y - 25} textAnchor="middle" className="fill-white text-[12px] opacity-0 group-hover:opacity-100 transition-opacity font-bold">
+                      {item.amount.toLocaleString()}đ
+                    </text>
+                    <rect x={x} y={y} width={barWidth} height={barHeight} rx={4} className="fill-[#008061] transition-all duration-700 group-hover:fill-[#00664d]" />
+                    <text x={x + barWidth / 2} y={chartHeight + 25} textAnchor="middle" className="fill-gray-500 text-[10px] font-bold">
+                      {item.label}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
+const StatCard = ({ title, value, icon: Icon, color }) => (
+  <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="text-gray-500 text-sm mb-2">{title}</div>
+    <div className="flex items-center text-gray-900 font-extrabold text-[24px]">
+      <Icon className={`w-7 h-7 ${color} mr-3`} />
+      <span className={color}>{value}</span>
+    </div>
+  </div>
+);
 
 export default AdminDashboard;

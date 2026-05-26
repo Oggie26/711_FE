@@ -1,25 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-  @import "tailwindcss";
-
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap');
+@import "tailwindcss";
 
 @theme {
   --color-primary: #008061;
   --color-orange: #ff6b00;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 body {
   font-family: 'Inter', sans-serif;
-  color: #f3f4f6;
   -webkit-font-smoothing: antialiased;
   background-color: #0f172a;
   overflow-x: hidden;
+  width: 100%;
 }
 
 /* Custom Scrollbar */
@@ -27,27 +19,39 @@ body {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.15);
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   border: 2px solid transparent;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
 /* Background Mesh Gradients */
 @keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .bg-admin-mesh {
   min-height: 100vh;
+  width: 100%;
   background: linear-gradient(-45deg, #0b0f19, #022c22, #180a22, #111827);
   background-size: 400% 400%;
   animation: gradientShift 18s ease infinite;
@@ -62,15 +66,22 @@ body {
   right: 0;
   bottom: 0;
   background: radial-gradient(circle at 80% 20%, rgba(0, 128, 97, 0.1) 0%, transparent 50%),
-              radial-gradient(circle at 20% 80%, rgba(255, 107, 0, 0.08) 0%, transparent 50%);
+    radial-gradient(circle at 20% 80%, rgba(255, 107, 0, 0.08) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
 
 /* Glow Keyframes */
 @keyframes cardGlow {
-  0%, 100% { box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2); }
-  50% { box-shadow: 0 8px 32px 0 rgba(0, 128, 97, 0.15); }
+
+  0%,
+  100% {
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 8px 32px 0 rgba(0, 128, 97, 0.15);
+  }
 }
 
 /* Glassmorphism Utilities */
@@ -139,6 +150,7 @@ body {
 .time-morning .bg-overlay {
   background: linear-gradient(to bottom, rgba(255, 220, 120, 0.2), rgba(15, 23, 42, 0.85));
 }
+
 .time-morning .bg-image {
   filter: blur(8px) brightness(0.65) contrast(1.1);
 }
@@ -146,6 +158,7 @@ body {
 .time-afternoon .bg-overlay {
   background: linear-gradient(to bottom, rgba(0, 128, 97, 0.1), rgba(15, 23, 42, 0.9));
 }
+
 .time-afternoon .bg-image {
   filter: blur(8px) brightness(0.7);
 }
@@ -153,6 +166,7 @@ body {
 .time-evening .bg-overlay {
   background: linear-gradient(to bottom, rgba(255, 90, 0, 0.18), rgba(15, 23, 42, 0.9));
 }
+
 .time-evening .bg-image {
   filter: blur(8px) brightness(0.5) contrast(1.15);
 }
@@ -160,228 +174,16 @@ body {
 .time-night .bg-overlay {
   background: linear-gradient(to bottom, rgba(10, 20, 40, 0.65), rgba(15, 23, 42, 0.95));
 }
+
 .time-night .bg-image {
   filter: blur(8px) brightness(0.35) contrast(1.2);
 }
 
-/* Custom Utilities */
-.text-primary { color: #008061; }
-.text-orange { color: #ff6b00; }
-.bg-primary { background-color: #008061; }
-.bg-orange { background-color: #ff6b00; }
-
-/* Micro-animations */
 .hover-glow {
   transition: all 0.3s ease;
 }
+
 .hover-glow:hover {
   box-shadow: 0 0 15px rgba(0, 128, 97, 0.4);
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
-}
-
-/* AntD Overrides for Glass */
-.ant-layout {
-  background: transparent !important;
-}
-
-.ant-layout-sider {
-  background: rgba(255, 255, 255, 0.03) !important;
-  backdrop-filter: blur(30px) !important;
-  -webkit-backdrop-filter: blur(30px) !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-
-.ant-layout-header {
-  background: rgba(255, 255, 255, 0.03) !important;
-  backdrop-filter: blur(25px) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: #fff !important;
-}
-
-/* Menu Custom Glass Styling */
-.ant-menu {
-  background: transparent !important;
-  color: rgba(255, 255, 255, 0.7) !important;
-}
-.ant-menu-item {
-  color: rgba(255, 255, 255, 0.7) !important;
-  transition: all 0.3s ease !important;
-}
-.ant-menu-item-selected {
-  background: rgba(0, 128, 97, 0.15) !important;
-  color: #00ffc4 !important;
-  font-weight: 600 !important;
-  border-radius: 8px !important;
-}
-.ant-menu-item:hover {
-  color: #fff !important;
-  background: rgba(255, 255, 255, 0.06) !important;
-}
-
-/* Tables Custom Glass Override */
-.ant-table-wrapper {
-  background: rgba(10, 15, 30, 0.35) !important;
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 12px;
-  overflow: hidden;
-}
-.ant-table {
-  background: transparent !important;
-  color: #f3f4f6 !important;
-}
-.ant-table-thead > tr > th {
-  background: rgba(255, 255, 255, 0.06) !important;
-  color: rgba(255, 255, 255, 0.85) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-  font-weight: 600 !important;
-}
-.ant-table-tbody > tr > td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-  background: transparent !important;
-  color: rgba(255, 255, 255, 0.8) !important;
-}
-.ant-table-tbody > tr:hover > td {
-  background: rgba(255, 255, 255, 0.06) !important;
-}
-.ant-table-placeholder {
-  background: transparent !important;
-}
-.ant-table-placeholder .ant-empty-description {
-  color: rgba(255, 255, 255, 0.4) !important;
-}
-
-/* Input Fields overrides */
-.ant-input, .ant-input-number, .ant-select-selector, .ant-input-password {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  color: #fff !important;
-  border-radius: 8px !important;
-  backdrop-filter: blur(8px);
-}
-.ant-input::placeholder, .ant-input-number input::placeholder {
-  color: rgba(255, 255, 255, 0.4) !important;
-}
-.ant-input:focus, .ant-input:hover, 
-.ant-input-number:focus, .ant-input-number:hover,
-.ant-select-selector:focus, .ant-select-selector:hover,
-.ant-input-affix-wrapper:focus, .ant-input-affix-wrapper:hover {
-  border-color: rgba(0, 128, 97, 0.6) !important;
-  box-shadow: 0 0 8px rgba(0, 128, 97, 0.3) !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-
-/* Input password wrapper override */
-.ant-input-affix-wrapper {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-}
-.ant-input-affix-wrapper input {
-  background: transparent !important;
-  color: #fff !important;
-}
-
-/* Modals Override */
-.ant-modal-content {
-  background: rgba(15, 23, 42, 0.85) !important;
-  backdrop-filter: blur(30px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
-  color: #fff !important;
-}
-.ant-modal-header {
-  background: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-.ant-modal-title {
-  color: #fff !important;
-  font-weight: 600 !important;
-  font-size: 1.25rem !important;
-}
-.ant-modal-close-icon {
-  color: rgba(255, 255, 255, 0.6) !important;
-}
-.ant-modal-close-icon:hover {
-  color: #fff !important;
-}
-.ant-modal-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-  padding-top: 12px !important;
-}
-
-/* Dropdown Menu overrides */
-.ant-select-dropdown {
-  background: rgba(15, 23, 42, 0.9) !important;
-  backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important;
-}
-.ant-select-item {
-  color: rgba(255, 255, 255, 0.8) !important;
-}
-.ant-select-item-option-selected {
-  background: rgba(0, 128, 97, 0.25) !important;
-  color: #00ffc4 !important;
-  font-weight: 600 !important;
-}
-.ant-select-item-option-active {
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: #fff !important;
-}
-
-/* Drawers Glass Override */
-.ant-drawer-content {
-  background: rgba(15, 23, 42, 0.85) !important;
-  backdrop-filter: blur(25px) !important;
-  border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #fff !important;
-}
-.ant-drawer-header {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  background: transparent !important;
-}
-.ant-drawer-title {
-  color: #fff !important;
-}
-.ant-drawer-close {
-  color: rgba(255, 255, 255, 0.6) !important;
-}
-.ant-drawer-close:hover {
-  color: #fff !important;
-}
-.ant-drawer-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-
-/* Pagination Overrides */
-.ant-pagination-item {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-.ant-pagination-item a {
-  color: rgba(255, 255, 255, 0.7) !important;
-}
-.ant-pagination-item-active {
-  background: #ff6b00 !important;
-  border-color: #ff6b00 !important;
-}
-.ant-pagination-item-active a {
-  color: #fff !important;
-}
-.ant-pagination-prev .ant-pagination-item-link,
-.ant-pagination-next .ant-pagination-item-link {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  color: rgba(255, 255, 255, 0.7) !important;
-}
-
-/* Breadcrumb / Statistic Label styles */
-.ant-statistic-title {
-  color: rgba(255, 255, 255, 0.6) !important;
-}
-
-/* Divider colors */
-.ant-divider {
-  border-color: rgba(255, 255, 255, 0.1) !important;
 }
