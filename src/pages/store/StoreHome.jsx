@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   ShoppingCart, Search, Settings, Trash2, Minus, Plus, X, Truck,
   Coffee, Cookie, Utensils, Milk, Smile, Star, Headphones,
-  User, LogIn, ChevronDown, LogOut
+  User, LogIn, ChevronDown, LogOut, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
@@ -34,6 +34,33 @@ const StorePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const fetchStoreProducts = async (page = 0, categoryId = selectedCategoryId, keyword = searchTerm) => {
+    setLoading(true);
+    try {
+      let prodResponse;
+      if (categoryId) {
+        prodResponse = await ProductService.getProductsByCategory(categoryId, page, 20);
+      } else {
+        prodResponse = await ProductService.searchProducts(keyword, page, 20);
+      }
+      
+      const responseData = prodResponse?.data || prodResponse || {};
+      const resData = responseData.data || responseData.content || responseData || [];
+      
+      setProducts(Array.isArray(resData) ? resData : (resData.content || []));
+      setTotalPages(responseData.totalPages || 1);
+      setCurrentPage(responseData.page || responseData.number || page);
+    } catch (error) {
+      toast.error("Tải danh sách sản phẩm thất bại!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchUserCart = async () => {
     const token = localStorage.getItem('accessToken');
@@ -66,12 +93,9 @@ const StorePage = () => {
     const initStoreData = async () => {
       setLoading(true);
       try {
-        const [catResponse, prodResponse] = await Promise.all([
-          CategoryService.getAllCategories(),
-          ProductService.searchProducts('', 0, 24)
-        ]);
+        const catResponse = await CategoryService.getAllCategories();
         setCategories(catResponse || []);
-        setProducts(prodResponse?.data?.data || prodResponse?.data || prodResponse || []);
+        await fetchStoreProducts(0, null, '');
         await fetchUserCart();
       } catch (error) {
         toast.error("Không thể kết nối đồng bộ dữ liệu cửa hàng!");
@@ -98,7 +122,7 @@ const StorePage = () => {
 
     const delayDebounceFn = setTimeout(async () => {
       try {
-        const res = await ProductService.searchProducts(searchTerm, 0, 7); // Lấy nhanh 7 sản phẩm khớp nhất làm gợi ý
+        const res = await ProductService.searchProducts(searchTerm, 0, 7);
         const resData = res?.data?.data || res?.data || res || [];
         setSuggestions(resData);
       } catch (error) {
@@ -112,16 +136,26 @@ const StorePage = () => {
   const handleSearchSubmit = async (e) => {
     if (e) e.preventDefault();
     setShowSuggestions(false);
-    setLoading(true);
-    try {
-      const prodResponse = await ProductService.searchProducts(searchTerm, 0, 24);
-      const resData = prodResponse?.data?.data || prodResponse?.data || prodResponse || [];
-      setProducts(resData);
-    } catch (error) {
-      toast.error("Tìm kiếm sản phẩm thất bại!");
-    } finally {
-      setLoading(false);
+    setSelectedCategoryId(null);
+    await fetchStoreProducts(0, null, searchTerm);
+  };
+
+  const handleCategoryClick = async (categoryId) => {
+    setSearchTerm('');
+    if (selectedCategoryId === categoryId) {
+      setSelectedCategoryId(null);
+      await fetchStoreProducts(0, null, '');
+    } else {
+      setSelectedCategoryId(categoryId);
+      await fetchStoreProducts(0, categoryId, '');
     }
+  };
+
+  const handleClearFilter = async () => {
+    if (!selectedCategoryId && !searchTerm) return;
+    setSelectedCategoryId(null);
+    setSearchTerm('');
+    await fetchStoreProducts(0, null, '');
   };
 
   const addToCart = async product => {
@@ -221,7 +255,6 @@ const StorePage = () => {
             <span className="text-[#e4252b] text-[11px] font-bold italic -mt-1 ml-1 font-serif">Luôn mở cửa</span>
           </div>
 
-          {/* Ô TÌM KIẾM ĐỘNG KIỂU SHOPEE */}
           <div ref={searchContainerRef} className="flex-1 max-w-2xl hidden md:block relative">
             <form onSubmit={handleSearchSubmit} className="relative group">
               <input
@@ -240,7 +273,6 @@ const StorePage = () => {
               </button>
             </form>
 
-            {/* === DROPDOWN SUGGESTIONS BOX CHUẨN SHOPEE === */}
             {showSuggestions && searchTerm.trim() && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-100 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto py-2">
                 {suggestions.length === 0 ? (
@@ -253,7 +285,7 @@ const StorePage = () => {
                         key={item.id}
                         onClick={() => {
                           setShowSuggestions(false);
-                          navigate(`/product/${item.id}`); // Click gợi ý bay thẳng vào trang chi tiết
+                          navigate(`/product/${item.id}`);
                         }}
                         className="px-4 py-2.5 hover:bg-gray-50 flex items-center justify-between gap-4 cursor-pointer transition-colors border-b border-gray-50/50 last:border-none"
                       >
@@ -354,11 +386,13 @@ const StorePage = () => {
             <div className="mb-10">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-800">Mua Sắm Theo Danh Mục</h3>
-                <span className="text-gray-500 text-xs font-semibold hover:text-[#008061] cursor-pointer">Xem tất cả</span>
+                <span onClick={handleClearFilter} className="text-gray-500 text-xs font-semibold hover:text-[#008061] cursor-pointer transition-colors">Xem tất cả</span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-8 gap-4">
                 {categories.map((cat) => (
-                  <div key={cat.id} className="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-md hover:border-[#008061]/30 transition-all cursor-pointer">
+                  <div key={cat.id}
+                    onClick={() => handleCategoryClick(cat.id)}
+                    className={`flex flex-col items-center justify-center p-4 bg-white rounded-xl border shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-md hover:border-[#008061]/30 transition-all cursor-pointer ${selectedCategoryId === cat.id ? 'border-[#008061] ring-2 ring-[#008061]/20 bg-green-50' : 'border-gray-100'}`}>
                     <div className="w-12 h-12 rounded-full overflow-hidden mb-3 shadow-sm border border-gray-100 bg-gray-50 flex items-center justify-center">
                       <img src={cat.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=150'} alt={cat.name} className="w-full h-full object-cover" />
                     </div>
@@ -371,9 +405,9 @@ const StorePage = () => {
             {/* SẢN PHẨM MÀN HÌNH CHÍNH */}
             <div className="mb-10">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-800">Sản Phẩm Cửa Hàng</h3>
-                {searchTerm && (
-                  <span onClick={() => { setSearchTerm(''); window.location.reload(); }} className="text-xs font-semibold text-red-500 hover:text-red-700 cursor-pointer">
+                <h3 className="text-lg font-bold text-gray-800">Sản Phẩm Cửa Hàng {selectedCategoryId && <span className="text-[#008061] text-sm ml-2">(Đang lọc theo danh mục)</span>}</h3>
+                {(searchTerm || selectedCategoryId) && (
+                  <span onClick={handleClearFilter} className="text-xs font-semibold text-red-500 hover:text-red-700 cursor-pointer transition-colors">
                     Hủy lọc tìm kiếm [X]
                   </span>
                 )}
@@ -422,6 +456,40 @@ const StorePage = () => {
                   })
                 )}
               </div>
+
+              {/* PHÂN TRANG */}
+              {!loading && totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-10">
+                  <button
+                    disabled={currentPage === 0}
+                    onClick={() => fetchStoreProducts(currentPage - 1)}
+                    className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  
+                  {[...Array(totalPages)].map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => fetchStoreProducts(i)}
+                      className={`w-10 h-10 rounded-xl text-sm font-bold border transition-all cursor-pointer ${currentPage === i
+                          ? 'bg-[#008061] text-white border-[#008061] shadow-md shadow-[#008061]/20'
+                          : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                        }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+
+                  <button
+                    disabled={currentPage === totalPages - 1}
+                    onClick={() => fetchStoreProducts(currentPage + 1)}
+                    className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* FEATURES FOOTER */}

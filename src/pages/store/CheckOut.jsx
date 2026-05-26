@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, Banknote, ShieldCheck, ChevronLeft, ArrowRight, ShoppingBag } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import OrderService from '../../service/order/orderService';
 import CartService from '../../service/cart/cartService';
@@ -67,11 +67,10 @@ const Checkout = () => {
                 window.location.href = paymentUrl;
                 return;
             }
-            toast.success("Đặt hàng thành công!");
-
-            setTimeout(() => {
-                navigate('/');
-            }, 500);
+            if (paymentMethod === 'CASH') {
+                toast.success("Đặt hàng thành công!");
+                navigate("/")
+            }
 
         } catch (error) {
             console.error("Lỗi đặt hàng chi tiết:", error);
@@ -94,6 +93,7 @@ const Checkout = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 font-sans">
+            <Toaster position="top-right" reverseOrder={false} />
             <div className="max-w-5xl mx-auto">
 
                 <div className="flex items-center gap-4 mb-8">

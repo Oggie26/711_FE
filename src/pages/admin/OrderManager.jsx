@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Eye, X, DollarSign, ShoppingBag, CheckCircle, Clock, User as UserIcon, CreditCard, Banknote, ChevronLeft, ChevronRight } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import OrderService from '../../service/order/orderService';
 
 const OrderManager = () => {
@@ -9,25 +9,36 @@ const OrderManager = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  // --- STATE PHÂN TRANG ---
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // --- STATE THỐNG KÊ TOÀN HỆ THỐNG ---
+  const [globalStats, setGlobalStats] = useState({
+    total: 0,
+    completed: 0,
+    cancelled: 0,
+    revenue: 0
+  });
+
   useEffect(() => {
     fetchOrders("", 0);
+    fetchGlobalStats(""); // Chạy ngầm tính toán thống kê tổng khi vừa vào trang
   }, []);
 
+  // Hàm 1: Lấy dữ liệu phân trang hiển thị lên bảng (10 đơn/trang)
   const fetchOrders = async (keyword = searchTerm, page = 0) => {
     setLoading(true);
     try {
-      const response = await OrderService.searchOrders(keyword, page, 10); // Lấy 10 đơn/trang
+      const response = await OrderService.searchOrders(keyword, page, 10);
 
-      const responseData = response?.data?.data || {};
-      const dataList = responseData.data || responseData || [];
+      const responseData = response?.data || {};
+      const dataList = responseData.data || responseData.content || responseData || [];
 
       setOrders(Array.isArray(dataList) ? dataList : []);
       setTotalPages(responseData.totalPages || 1);
-      setCurrentPage(responseData.page || 0);
+      setCurrentPage(responseData.page || responseData.number || 0);
     } catch (error) {
       toast.error("Không thể tải danh sách đơn hàng!");
     } finally {
@@ -35,11 +46,38 @@ const OrderManager = () => {
     }
   };
 
+  // 🔥 Hàm 2: Gọi ngầm quét toàn bộ dữ liệu để tính số liệu TỔNG TẤT CẢ CÁC TRANG
+  const fetchGlobalStats = async (keyword = "") => {
+    try {
+      // Vác size=9999 để quét sạch đơn hàng phục vụ tính toán doanh thu tổng
+      const response = await OrderService.searchOrders(keyword, 0, 9999);
+      const responseData = response?.data || {};
+      const allOrders = responseData.data || responseData.content || responseData || [];
+
+      if (Array.isArray(allOrders)) {
+        const calculatedStats = allOrders.reduce((acc, order) => {
+          acc.total += 1;
+          if (order.status === 'PAYMENT_SUCCESS') {
+            acc.completed += 1;
+            acc.revenue += (order.totalPrice || 0); // Chỉ cộng doanh thu của đơn thành công
+          } else if (order.status === 'CANCELLED' || order.status === 'PAYMENT_FAILED') {
+            acc.cancelled += 1;
+          }
+          return acc;
+        }, { total: 0, completed: 0, cancelled: 0, revenue: 0 });
+
+        setGlobalStats(calculatedStats);
+      }
+    } catch (error) {
+      console.error("Lỗi tính toán thống kê tổng:", error);
+    }
+  };
+
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    // Khi gõ tìm kiếm mới, luôn đưa về trang đầu tiên (0)
     fetchOrders(value, 0);
+    fetchGlobalStats(value); // Cập nhật lại bộ thống kê tổng theo từ khóa tìm kiếm
   };
 
   const handleViewDetail = async (order) => {
@@ -77,7 +115,6 @@ const OrderManager = () => {
   };
 
   const getPaymentConfig = (payment) => {
-    // ĐÃ FIX: Chuyển 'COD' thành 'CASH' để bắt đúng dữ liệu từ Backend
     switch (payment) {
       case 'VNPAY':
         return { label: 'Thanh toán qua VNPAY', classes: 'bg-blue-50 text-blue-700 border-blue-200', icon: CreditCard };
@@ -88,14 +125,6 @@ const OrderManager = () => {
     }
   };
 
-  const stats = orders.reduce((acc, order) => {
-    acc.total += 1;
-    if (order.status === 'PAYMENT_SUCCESS') acc.completed += 1;
-    else if (order.status === 'CANCELLED' || order.status === 'PAYMENT_FAILED') acc.cancelled += 1;
-    acc.revenue += (order.totalPrice || 0);
-    return acc;
-  }, { total: 0, completed: 0, cancelled: 0, revenue: 0 });
-
   const formatDate = (dateString) => {
     if (!dateString) return "Không có dữ liệu";
     return new Date(dateString).toLocaleString('vi-VN', {
@@ -104,44 +133,46 @@ const OrderManager = () => {
   };
 
   return (
-    <div className="w-full p-6 bg-slate-50 min-h-screen">
+    <div className="w-full p-6 bg-slate-50 min-h-screen font-sans">
+      <Toaster position="top-right" />
       <div className="mb-8">
         <h1 className="text-2xl font-black text-slate-900 tracking-tight">Quản lý đơn hàng</h1>
       </div>
 
+      {/* --- BOX THỐNG KÊ TOÀN HỆ THỐNG (TẤT CẢ CÁC TRANG) --- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         {[
-          { title: "Tổng đơn", val: stats.total, icon: ShoppingBag, color: "text-sky-600" },
-          { title: "Thành công", val: stats.completed, icon: CheckCircle, color: "text-emerald-600" },
-          { title: "Thất bại/Hủy", val: stats.cancelled, icon: X, color: "text-red-600" },
-          { title: "Doanh thu", val: `${stats.revenue.toLocaleString()} ₫`, icon: DollarSign, color: "text-[#008061]" }
+          { title: "Tổng đơn hệ thống", val: globalStats.total, icon: ShoppingBag, color: "text-sky-600" },
+          { title: "Tổng đơn thành công", val: globalStats.completed, icon: CheckCircle, color: "text-emerald-600" },
+          { title: "Tổng đơn thất bại/hủy", val: globalStats.cancelled, icon: X, color: "text-red-600" },
+          { title: "Tổng doanh thu", val: `${globalStats.revenue.toLocaleString()} ₫`, icon: DollarSign, color: "text-[#008061]" }
         ].map((item, idx) => (
           <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center ${item.color}`}><item.icon /></div>
+            <div className={`w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center ${item.color}`}><item.icon size={20} /></div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">{item.title}</p>
-              <p className="text-md font-black text-slate-900">{item.val}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{item.title}</p>
+              <p className="text-lg font-black text-slate-900 mt-0.5">{item.val}</p>
             </div>
           </div>
         ))}
       </div>
 
       <div className="mb-6 max-w-md relative">
-        <Search className="absolute left-3 top-3 text-slate-400 w-4 h-4" />
+        <Search className="absolute left-3 top-3.5 text-slate-400 w-4 h-4" />
         <input
           type="text"
           placeholder="Tìm mã đơn hàng..."
-          className="w-full pl-10 py-2.5 rounded-xl border border-slate-200 focus:border-[#008061] outline-none"
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-[#008061] focus:ring-1 focus:ring-[#008061] outline-none text-sm font-medium transition-all"
           value={searchTerm}
           onChange={handleSearch}
         />
       </div>
 
-      {/* KHUNG BẢNG & PHÂN TRANG */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col">
+      {/* KHUNG BẢNG DATA */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-xs text-slate-400 uppercase">
+            <thead className="bg-slate-50 text-xs text-slate-400 uppercase border-b border-slate-100">
               <tr>
                 <th className="px-6 py-4 whitespace-nowrap">Mã đơn</th>
                 <th className="px-6 py-4 whitespace-nowrap">Thanh toán</th>
@@ -150,7 +181,7 @@ const OrderManager = () => {
                 <th className="px-6 py-4 text-center whitespace-nowrap">Chi tiết</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-700">
               {loading ? (
                 <tr>
                   <td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-medium">Đang tải dữ liệu...</td>
@@ -162,26 +193,26 @@ const OrderManager = () => {
               ) : (
                 orders.map(order => {
                   const statusObj = getStatusConfig(order.status);
-                  const paymentObj = getPaymentConfig(order.payment);
+                  const paymentObj = getPaymentConfig(order.paymentMethod || order.payment);
                   const PaymentIcon = paymentObj.icon;
 
                   return (
                     <tr key={order.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-[#008061]">{order.orderCode}</td>
+                      <td className="px-6 py-4 font-bold text-[#008061]">#{String(order.orderCode || order.id).slice(-8)}</td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-bold border ${paymentObj.classes}`}>
-                          <PaymentIcon className="w-3 h-3" />
-                          {order.payment}
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border ${paymentObj.classes}`}>
+                          <PaymentIcon className="w-3.5 h-3.5" />
+                          {order.paymentMethod || order.payment}
                         </span>
                       </td>
-                      <td className="px-6 py-4 font-black">{order.totalPrice?.toLocaleString()} ₫</td>
+                      <td className="px-6 py-4 font-black text-slate-900">{order.totalPrice?.toLocaleString()} ₫</td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${statusObj.classes}`}>
                           {statusObj.label}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <button onClick={() => handleViewDetail(order)} className="p-2 border border-slate-200 rounded-lg hover:bg-slate-100 text-slate-600 transition-all">
+                        <button onClick={() => handleViewDetail(order)} className="p-2 border border-slate-200 rounded-lg hover:bg-slate-100 hover:text-[#008061] text-slate-500 transition-all cursor-pointer">
                           <Eye className="w-4 h-4" />
                         </button>
                       </td>
@@ -194,29 +225,28 @@ const OrderManager = () => {
         </div>
 
         {/* --- UI PHÂN TRANG --- */}
-        {totalPages > 0 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-white rounded-b-2xl">
-            <p className="text-sm text-slate-500 font-semibold">
-              Trang <span className="text-slate-900 font-bold">{currentPage + 1}</span> / {totalPages}
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-white">
+            <p className="text-xs text-slate-500 font-bold">
+              Hiển thị trang <span className="text-slate-900 font-extrabold">{currentPage + 1}</span> / {totalPages} (Tổng {globalStats.total} đơn)
             </p>
 
             <div className="flex items-center gap-1.5">
               <button
                 disabled={currentPage === 0}
                 onClick={() => fetchOrders(searchTerm, currentPage - 1)}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              {/* Render danh sách các trang (1, 2, 3...) */}
               {[...Array(totalPages)].map((_, i) => (
                 <button
                   key={i}
                   onClick={() => fetchOrders(searchTerm, i)}
-                  className={`w-8 h-8 rounded-lg text-sm font-bold border transition-colors ${currentPage === i
-                    ? 'bg-[#008061] text-white border-[#008061] shadow-sm'
-                    : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                  className={`w-9 h-9 rounded-xl text-xs font-black border transition-all cursor-pointer ${currentPage === i
+                      ? 'bg-[#008061] text-white border-[#008061] shadow-md shadow-[#008061]/10'
+                      : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
                     }`}
                 >
                   {i + 1}
@@ -226,7 +256,7 @@ const OrderManager = () => {
               <button
                 disabled={currentPage === totalPages - 1}
                 onClick={() => fetchOrders(searchTerm, currentPage + 1)}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -241,21 +271,18 @@ const OrderManager = () => {
           <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
           <div className="w-full sm:w-[460px] bg-white h-full shadow-2xl relative flex flex-col transform transition-transform duration-300 translate-x-0">
 
-            {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <div className="flex flex-col">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Chi tiết hóa đơn</span>
-                <h2 className="text-lg font-black text-[#008061]">{selectedOrder.orderCode}</h2>
+                <h2 className="text-lg font-black text-[#008061]">#{String(selectedOrder.orderCode || selectedOrder.id).slice(-8)}</h2>
               </div>
-              <button onClick={() => setDrawerOpen(false)} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors">
-                <X className="w-4 h-4 text-slate-500" />
+              <button onClick={() => setDrawerOpen(false)} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-500 transition-colors cursor-pointer">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6 pb-8">
-
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-6 flex flex-col gap-4">
+            <div className="flex-1 overflow-y-auto p-6 pb-8 space-y-6">
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col gap-4">
                 <div className="flex justify-between items-center pb-4 border-b border-slate-200/60">
                   <span className="text-sm font-semibold text-slate-600">Trạng thái</span>
                   <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${getStatusConfig(selectedOrder.status).classes}`}>
@@ -276,49 +303,50 @@ const OrderManager = () => {
                   </div>
                 </div>
 
-                <div className="pt-2">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <div className="pt-2 border-t border-slate-200/60 flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                     <Clock className="w-3 h-3" /> Thời gian tạo
-                  </p>
-                  <p className="font-semibold text-slate-700 text-sm">{formatDate(selectedOrder.orderDate)}</p>
+                  </span>
+                  <span className="font-bold text-slate-700 text-xs">{formatDate(selectedOrder.orderDate)}</span>
                 </div>
 
                 <div className="pt-4 border-t border-slate-200/60">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Phương thức thanh toán</p>
-                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border ${getPaymentConfig(selectedOrder.payment).classes}`}>
-                    {React.createElement(getPaymentConfig(selectedOrder.payment).icon, { className: "w-4 h-4" })}
-                    {getPaymentConfig(selectedOrder.payment).label}
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border ${getPaymentConfig(selectedOrder.paymentMethod || selectedOrder.payment).classes}`}>
+                    {getPaymentConfig(selectedOrder.paymentMethod || selectedOrder.payment).label}
                   </div>
                 </div>
               </div>
 
-              <h3 className="text-sm font-black text-slate-800 mb-3">Danh sách sản phẩm</h3>
-              <div className="flex flex-col gap-3">
-                {selectedOrder.items?.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 p-3 bg-white border border-slate-100 shadow-sm rounded-xl">
-                    <img
-                      src={item.thumbnail || item.productThumbnail || 'https://via.placeholder.com/50'}
-                      alt={item.productName}
-                      className="w-12 h-12 rounded-lg object-cover bg-slate-50 border border-slate-100 flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-bold text-slate-900 line-clamp-1 block">{item.productName}</span>
-                      <span className="text-xs font-semibold text-slate-500 block mt-0.5">
-                        {item.price?.toLocaleString()} ₫ <span className="text-slate-300 mx-1">x</span> {item.quantity}
+              <div>
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">Danh sách sản phẩm</h3>
+                <div className="space-y-3">
+                  {selectedOrder.items?.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 p-3 bg-white border border-slate-100 shadow-sm rounded-xl">
+                      <img
+                        src={item.thumbnail || item.productThumbnail || 'https://via.placeholder.com/50'}
+                        alt={item.productName}
+                        className="w-12 h-12 rounded-lg object-cover bg-slate-50 border border-slate-100 flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-bold text-slate-900 line-clamp-1 block">{item.productName}</span>
+                        <span className="text-xs font-semibold text-slate-500 block mt-0.5">
+                          {item.price?.toLocaleString()} ₫ <span className="text-slate-300 mx-1">x</span> {item.quantity}
+                        </span>
+                      </div>
+                      <span className="font-black text-[#008061] text-sm flex-shrink-0">
+                        {(item.price * item.quantity).toLocaleString()} ₫
                       </span>
                     </div>
-                    <span className="font-black text-[#008061] text-sm flex-shrink-0">
-                      {(item.price * item.quantity).toLocaleString()} ₫
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
+            </div>
 
-              <div className="h-px bg-slate-100 my-6 w-full"></div>
-
-              <div className="flex justify-between items-center text-base px-2">
-                <span className="font-bold text-slate-800">Tổng thanh toán</span>
-                <span className="font-black text-red-600 text-xl">{selectedOrder.totalPrice?.toLocaleString()} ₫</span>
+            <div className="p-6 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-slate-800 text-sm uppercase">Tổng thanh toán</span>
+                <span className="font-black text-red-600 text-2xl">{selectedOrder.totalPrice?.toLocaleString()} ₫</span>
               </div>
             </div>
 

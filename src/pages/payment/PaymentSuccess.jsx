@@ -17,10 +17,6 @@ const PaymentSuccess = () => {
 
     useEffect(() => {
         setAnimate(true);
-
-        if (isSuccess) {
-            cartService.clearCart();
-        }
     }, [isSuccess]);
 
     return (
