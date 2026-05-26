@@ -45,6 +45,16 @@ const CategoryService = {
             throw error.response?.data?.message || 'Xóa danh mục thất bại. Vui lòng thử lại!';
         }
     },
+    getAllCategoriesByCategoryName: async (name) => {
+        try {
+            const response = await axios.get('/categories/by-name', {
+                params: { name }
+            });
+            return response.data;
+        } catch (error) {
+            throw error.response?.data?.message || 'Lấy danh sách danh mục thất bại. Vui lòng thử lại!';
+        }
+    },
 
     searchCategories: async (keyword = '', page = 0, size = 10) => {
         try {

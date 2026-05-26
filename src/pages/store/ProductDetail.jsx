@@ -7,6 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import ProductService from '../../service/product/productService';
 import CartService from '../../service/cart/cartService';
+import CategoryService from '../../service/category/categoryService';
 
 const ProductDetail = () => {
   const navigate = useNavigate();
@@ -21,7 +22,6 @@ const ProductDetail = () => {
 
   const [cartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState([]);
-  const [cartId, setCartId] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -46,8 +46,8 @@ const ProductDetail = () => {
     const delayDebounceFn = setTimeout(async () => {
       try {
         const res = await ProductService.searchProducts(searchTerm, 0, 7);
-        const resData = res?.data?.data || res?.data || res || [];
-        setSuggestions(resData);
+        const resData = res?.data?.data || res?.data?.content || res?.data || res || [];
+        setSuggestions(Array.isArray(resData) ? resData : []);
       } catch (error) {
         console.error("Lỗi tải gợi ý:", error);
       }
@@ -63,17 +63,12 @@ const ProductDetail = () => {
     }
   };
 
-  // --- HÀM LẤY GIỎ HÀNG --
   const fetchUserCart = async () => {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
     try {
       const response = await CartService.getCart();
       const cartData = response?.data?.data || response?.data || response;
-
-      if (cartData?.id) {
-        setCartId(cartData.id);
-      }
 
       const items = cartData?.items || [];
       const mappedItems = items.map(item => ({
@@ -89,6 +84,7 @@ const ProductDetail = () => {
       console.error("Lỗi đồng bộ giỏ hàng tại Detail:", e);
     }
   };
+
   useEffect(() => {
     const fetchProductAndRelated = async () => {
       setLoading(true);
@@ -100,11 +96,12 @@ const ProductDetail = () => {
         if (fetchedData?.thumbnail) {
           setActiveImage(fetchedData.thumbnail);
         } else if (fetchedData?.images && fetchedData.images.length > 0) {
-          setActiveImage(fetchedData.images[0].url);
+          setActiveImage(fetchedData.images[0].url || fetchedData.images[0].image);
         }
 
-        if (fetchedData?.categoryId) {
-          fetchRelatedProducts(fetchedData.categoryId, fetchedData.id);
+        const targetCategoryName = fetchedData?.categoryName || fetchedData?.category?.name;
+        if (targetCategoryName) {
+          fetchRelatedProducts(targetCategoryName, fetchedData.id);
         }
 
         await fetchUserCart();
@@ -118,21 +115,32 @@ const ProductDetail = () => {
     if (slug) fetchProductAndRelated();
   }, [slug]);
 
-  const fetchRelatedProducts = async (categoryId, currentProdId) => {
+  const fetchRelatedProducts = async (categoryName, currentProdId) => {
     setLoadingRelated(true);
     try {
-      const res = await ProductService.getProductsByCategory(categoryId, 0, 10);
-      const dataResponse = res?.data?.data || res?.data || res || [];
-      const filtered = dataResponse.filter(p => p.id !== currentProdId);
-      setRelatedProducts(filtered.slice(0, 6));
+      const resCategory = await CategoryService.getAllCategoriesByCategoryName(categoryName);
+      const categoryData = resCategory?.data?.data || resCategory?.data || resCategory;
+
+      const category = Array.isArray(categoryData) ? categoryData[0] : categoryData;
+
+      if (category && category.id) {
+        const resProducts = await ProductService.getProductsByCategory(category.id, 0, 10);
+        const productsData = resProducts?.data?.data || resProducts?.data?.content || resProducts?.data || resProducts || [];
+
+        const safeDataList = Array.isArray(productsData) ? productsData : [];
+
+        const filtered = safeDataList.filter(p => String(p.id) !== String(currentProdId));
+
+        setRelatedProducts(filtered.slice(0, 6));
+      }
     } catch (err) {
-      console.error("Lỗi tải sản phẩm cùng nhóm từ API:", err);
+      console.error("Lỗi tải sản phẩm cùng nhóm:", err);
     } finally {
       setLoadingRelated(false);
     }
   };
 
-  // --- XỬ LÝ GIỎ HÀNG & THANH TOÁN ---
+  // --- XỬ LÝ GIỎ HÀNG ---
   const addToCart = async (prod) => {
     const token = localStorage.getItem('accessToken');
     if (!token) {
@@ -207,21 +215,18 @@ const ProductDetail = () => {
       navigate(`/checkout?cartId=${finalCartId}`);
 
     } catch (error) {
-      console.error("Lỗi khi lấy thông tin giỏ hàng:", error);
       toast.error("Không thể lấy dữ liệu giỏ hàng lúc này!");
     }
   };
 
-
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
-  const shippingFee = 0;
-  const total = subtotal + shippingFee;
+  const total = subtotal;
 
   return (
     <div className="min-h-screen bg-[#f9fafb] text-gray-800 font-sans w-full flex flex-col overflow-x-hidden">
       <Toaster position="bottom-right" reverseOrder={false} containerStyle={{ zIndex: 99999 }} />
 
-      {/* HEADER NAVIGATION CÓ TÍCH HỢP SEARCH */}
+      {/* HEADER */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="w-full px-10 h-[76px] flex items-center justify-between gap-8">
           <div className="flex flex-col cursor-pointer select-none flex-shrink-0" onClick={() => navigate('/')}>
@@ -232,7 +237,6 @@ const ProductDetail = () => {
             <span className="text-[#e4252b] text-[11px] font-bold italic -mt-1 ml-1 font-serif">Luôn mở cửa</span>
           </div>
 
-          {/* Ô TÌM KIẾM ĐỘNG KIỂU SHOPEE */}
           <div ref={searchContainerRef} className="flex-1 max-w-2xl hidden md:block relative">
             <form onSubmit={handleSearchSubmit} className="relative group">
               <input
@@ -251,14 +255,13 @@ const ProductDetail = () => {
               </button>
             </form>
 
-            {/* DROPDOWN SUGGESTIONS BOX */}
             {showSuggestions && searchTerm.trim() && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-100 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto py-2">
                 {suggestions.length === 0 ? (
                   <div className="px-4 py-3 text-xs text-gray-400 font-medium">Không tìm thấy tên gợi ý phù hợp...</div>
                 ) : (
                   suggestions.map((item) => {
-                    const itemImg = item.thumbnail || (item.images?.[0]?.url) || 'https://via.placeholder.com/150';
+                    const itemImg = item.thumbnail || (item.images && item.images.length > 0 ? (item.images[0].url || item.images[0].image) : 'https://via.placeholder.com/150');
                     return (
                       <div
                         key={item.id}
@@ -287,7 +290,7 @@ const ProductDetail = () => {
 
           <div className="flex items-center gap-4 flex-shrink-0">
             <button
-              className={`flex items-center gap-2 px-4 py-2 rounded-md border transition-all ${cartOpen ? 'border-[#e4252b] bg-red-50 text-[#e4252b]' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md border transition-all cursor-pointer ${cartOpen ? 'border-[#e4252b] bg-red-50 text-[#e4252b]' : 'border-gray-200 text-gray-700 hover:border-gray-300 bg-white'}`}
               onClick={() => setCartOpen(!cartOpen)}
             >
               <div className="relative">
@@ -303,22 +306,21 @@ const ProductDetail = () => {
 
             {localStorage.getItem('accessToken') ? (
               <div className="relative group">
-                <button className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-4 py-2 rounded-lg font-bold text-sm text-gray-700 hover:bg-gray-100 transition-all">
+                <button className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-4 py-2 rounded-lg font-bold text-sm text-gray-700 hover:bg-gray-100 transition-all cursor-pointer">
                   <User className="w-4 h-4 text-[#008061]" />
                   Tài khoản <ChevronDown className="w-3 h-3 text-gray-400" />
                 </button>
-
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                  <button onClick={() => navigate('/profile')} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                  <button onClick={() => navigate('/profile')} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2 cursor-pointer border-none bg-transparent">
                     <Settings className="w-4 h-4 text-[#008061]" /> Thông tin cá nhân
                   </button>
-                  <button onClick={() => { localStorage.removeItem('accessToken'); window.location.reload(); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2">
+                  <button onClick={() => { localStorage.removeItem('accessToken'); window.location.reload(); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2 cursor-pointer border-none bg-transparent">
                     <LogOut className="w-4 h-4" /> Đăng xuất
                   </button>
                 </div>
               </div>
             ) : (
-              <button onClick={() => navigate('/login')} className="flex items-center gap-2 text-sm font-bold text-white bg-[#008061] px-6 py-2.5 rounded-lg hover:bg-[#006c52] shadow-sm transition-all">
+              <button onClick={() => navigate('/login')} className="flex items-center gap-2 text-sm font-bold text-white bg-[#008061] px-6 py-2.5 rounded-lg hover:bg-[#006c52] shadow-sm transition-all cursor-pointer border-none">
                 <LogIn className="w-4 h-4" /> Đăng nhập
               </button>
             )}
@@ -346,39 +348,43 @@ const ProductDetail = () => {
             </div>
           ) : (
             <div className="flex flex-col gap-12 w-full">
-              {/* KHỐI BOX CHI TIẾT SẢN PHẨM */}
               <div className="bg-white rounded-[28px] p-6 sm:p-10 shadow-xl border border-gray-100 w-full">
                 <button
                   onClick={() => navigate(-1)}
-                  className="mb-8 text-[#008061] hover:text-[#006c52] font-semibold flex items-center justify-center gap-1 hover:bg-[#008061]/5 border border-transparent hover:border-[#008061]/10 px-4 h-9 rounded-lg transition-all cursor-pointer bg-transparent"
+                  className="mb-8 text-[#008061] hover:text-[#006c52] font-semibold flex items-center justify-center gap-1 hover:bg-[#008061]/5 border border-transparent hover:border-[#008061]/10 px-4 h-9 rounded-lg transition-all cursor-pointer bg-transparent w-fit"
                 >
                   <ArrowLeft className="w-4 h-4 text-[#008061]" /> Quay lại
                 </button>
 
                 <div className="flex flex-col md:flex-row gap-8 lg:gap-12 w-full">
                   <div className="w-full md:w-1/2 flex flex-col gap-4">
-                    <div className="rounded-2xl overflow-hidden bg-gray-50 h-[380px] border border-gray-100 shadow-sm">
-                      <img src={activeImage} alt={product.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                    <div className="rounded-2xl overflow-hidden bg-white h-[380px] border border-gray-100 shadow-sm flex items-center justify-center">
+                      <img src={activeImage} alt={product.name} className="w-full h-full object-contain hover:scale-105 transition-transform duration-500" />
                     </div>
 
-                    {product.images && product.images.length > 0 && (
-                      <div className="grid grid-cols-5 gap-2">
+                    {(product.thumbnail || (product.images && product.images.length > 0)) && (
+                      <div className="grid grid-cols-5 gap-3 mt-2">
                         {product.thumbnail && (
                           <div
-                            className={`aspect-square rounded-xl overflow-hidden border-2 cursor-pointer transition-all bg-white p-1 ${activeImage === product.thumbnail ? 'border-[#008061] shadow-sm' : 'border-gray-200/70 hover:border-gray-400'}`}
+                            className={`relative aspect-square rounded-xl overflow-hidden border-2 cursor-pointer transition-all bg-white ${activeImage === product.thumbnail
+                              ? 'border-[#008061] shadow-md scale-105 z-10'
+                              : 'border-gray-200 hover:border-[#008061]/50'
+                              }`}
                             onClick={() => setActiveImage(product.thumbnail)}
                           >
-                            <img src={product.thumbnail} alt="Main Thumbnail" className="w-full h-full object-cover rounded-lg" />
+                            <img src={product.thumbnail} alt="Main Thumbnail" className="w-full h-full object-cover" />
                           </div>
                         )}
-
-                        {product.images.map((imgObj) => (
+                        {product.images?.map((imgObj) => (
                           <div
                             key={imgObj.id}
-                            className={`aspect-square rounded-xl overflow-hidden border-2 cursor-pointer transition-all bg-white p-1 ${activeImage === imgObj.url ? 'border-[#008061] shadow-sm' : 'border-gray-200/70 hover:border-gray-400'}`}
-                            onClick={() => setActiveImage(imgObj.url)}
+                            className={`relative aspect-square rounded-xl overflow-hidden border-2 cursor-pointer transition-all bg-white ${activeImage === (imgObj.url || imgObj.image)
+                              ? 'border-[#008061] shadow-md scale-105 z-10'
+                              : 'border-gray-200 hover:border-[#008061]/50'
+                              }`}
+                            onClick={() => setActiveImage(imgObj.url || imgObj.image)}
                           >
-                            <img src={imgObj.url} alt="Product Detail" className="w-full h-full object-cover rounded-lg" />
+                            <img src={imgObj.url || imgObj.image} alt="Product Detail" className="w-full h-full object-cover" />
                           </div>
                         ))}
                       </div>
@@ -389,7 +395,7 @@ const ProductDetail = () => {
                     <div>
                       <div className="flex items-center justify-between mb-4">
                         <span className="px-3 py-1 rounded-lg text-xs font-bold uppercase bg-[#008061]/10 border border-[#008061]/20 text-[#008061] tracking-wider">
-                          {product.categoryName || 'Mặt hàng'}
+                          {product.category?.name || product.categoryName || 'Mặt hàng'}
                         </span>
                         <div className="flex gap-2">
                           <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-50 bg-transparent border-none cursor-pointer">
@@ -409,7 +415,7 @@ const ProductDetail = () => {
                         <p className="text-xs text-gray-400 font-mono mb-4">Barcode: {product.barcode}</p>
                       )}
 
-                      <p className="text-3xl font-extrabold text-[#008061] mb-6">
+                      <p className="text-3xl font-extrabold text-[#e4252b] mb-6">
                         {(product.price || 0).toLocaleString()} VND
                       </p>
 
@@ -440,48 +446,49 @@ const ProductDetail = () => {
 
                       <button
                         disabled={product.stock <= 0}
-                        className="w-36 bg-[#008061] hover:bg-[#00a37c] text-white border-none h-9 text-xs font-bold shadow-md shadow-[#008061]/10 hover:scale-[1.02] transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed px-3 select-none"
+                        className="w-36 bg-[#008061] hover:bg-[#00a37c] text-white border-none h-10 text-sm font-bold shadow-md shadow-[#008061]/20 hover:scale-[1.02] transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed px-3 select-none"
                         onClick={() => addToCart(product)}
                       >
                         <ShoppingCart className="w-4 h-4" /> Thêm vào giỏ
                       </button>
                     </div>
-
                   </div>
                 </div>
               </div>
 
-              <div className="w-full mt-4">
+              {/* SẢN PHẨM CÙNG DANH MỤC */}
+              <div className="w-full">
                 <div className="flex justify-between items-center mb-5">
                   <h3 className="text-xl font-black text-gray-800 tracking-tight">Sản phẩm cùng danh mục</h3>
-                  <span className="text-gray-400 text-xs font-bold hover:text-[#008061] cursor-pointer transition-colors">Xem tất cả</span>
                 </div>
 
                 {loadingRelated ? (
                   <div className="text-center py-8 text-gray-400 text-xs font-medium">Đang tìm các mặt hàng liên quan...</div>
                 ) : relatedProducts.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400 text-xs font-medium">Không tìm thấy sản phẩm liên quan nào khác.</div>
+                  <div className="bg-white p-8 rounded-[20px] text-center border border-gray-100 text-gray-400 text-sm font-medium shadow-sm">
+                    Không tìm thấy sản phẩm liên quan nào khác trong danh mục này.
+                  </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 w-full">
                     {relatedProducts.map(item => {
-                      const relatedImg = item.thumbnail || (item.images && item.images.length > 0 ? item.images[0].url : 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=400');
+                      const relatedImg = item.thumbnail || (item.images && item.images.length > 0 ? (item.images[0].url || item.images[0].image) : 'https://via.placeholder.com/400');
                       return (
-                        <div key={item.id} className="bg-white rounded-xl p-3 border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.01)] hover:border-[#008061]/50 hover:shadow-lg transition-all group flex flex-col">
-                          <div className="cursor-pointer flex-1 flex flex-col" onClick={() => navigate(`/product/${item.id}`)}>
-                            <div className="w-full aspect-square mb-2 bg-white flex items-center justify-center overflow-hidden rounded-lg">
-                              <img src={relatedImg} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 rounded-lg" />
+                        <div key={item.id} className="bg-white rounded-[20px] p-3 border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:border-[#008061]/30 hover:shadow-lg transition-all group flex flex-col cursor-pointer" onClick={() => navigate(`/product/${item.slug}`)}>
+                          <div className="flex-1 flex flex-col">
+                            <div className="w-full aspect-square mb-3 bg-gray-50 flex items-center justify-center overflow-hidden rounded-xl">
+                              <img src={relatedImg} alt={item.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
                             </div>
-                            <h4 className="text-gray-800 font-bold text-[11px] mb-1 line-clamp-2 h-7 hover:text-[#008061] transition-colors leading-snug">{item.name}</h4>
-                            <p className="text-[#e4252b] font-bold text-xs mb-2">{(item.price || 0).toLocaleString()} Đ</p>
+                            <h4 className="text-gray-800 font-bold text-xs mb-1.5 line-clamp-2 h-8 hover:text-[#008061] transition-colors leading-relaxed px-1">{item.name}</h4>
+                            <p className="text-[#e4252b] font-black text-[13px] mb-3 px-1">{(item.price || 0).toLocaleString()} Đ</p>
                           </div>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               addToCart(item);
                             }}
-                            className="mt-auto w-full flex items-center justify-center gap-1.5 bg-white text-[#008061] font-semibold py-2 text-xs rounded-md border border-[#008061] hover:bg-[#008061] hover:text-white transition-colors"
+                            className="mt-auto w-full flex items-center justify-center gap-1.5 bg-white text-[#008061] font-bold py-2.5 text-xs rounded-xl border border-[#008061] hover:bg-[#008061] hover:text-white transition-colors cursor-pointer"
                           >
-                            <ShoppingCart className="w-3.5 h-3.5" /> Mua ngay
+                            <ShoppingCart className="w-3.5 h-3.5" /> Thêm ngay
                           </button>
                         </div>
                       );
@@ -493,38 +500,39 @@ const ProductDetail = () => {
           )}
         </main>
 
-        <aside className={`fixed top-[124px] right-0 bottom-0 w-[380px] bg-white border-l border-gray-200 shadow-xl z-40 flex flex-col transform transition-transform duration-300 ${cartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        {/* GIỎ HÀNG SIDEBAR */}
+        <aside className={`fixed top-[76px] right-0 bottom-0 w-[380px] bg-white border-l border-gray-200 shadow-2xl z-40 flex flex-col transform transition-transform duration-300 ${cartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
             <h2 className="text-base font-bold text-gray-800">Giỏ Hàng Của Bạn</h2>
-            <button onClick={() => setCartOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            <button onClick={() => setCartOpen(false)} className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer"><X className="w-5 h-5" /></button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
             {cartItems.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-400">
                 <ShoppingCart className="w-12 h-12 opacity-20 mb-3" />
-                <p className="text-sm">Chưa có sản phẩm</p>
+                <p className="text-sm font-medium">Giỏ hàng đang trống</p>
               </div>
             ) : (
               cartItems.map(item => (
                 <div key={item.id} className="flex gap-4 items-start">
-                  <div className="w-16 h-16 bg-white border border-gray-100 rounded-lg p-1.5 flex-shrink-0 flex items-center justify-center">
-                    <img src={item.img} alt={item.name} className="max-w-full max-h-full object-contain rounded-md" />
+                  <div className="w-20 h-20 bg-gray-50 border border-gray-100 rounded-xl p-2 flex-shrink-0 flex items-center justify-center">
+                    <img src={item.img} alt={item.name} className="max-w-full max-h-full object-contain" />
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
-                      <h4 className="text-[13px] font-bold text-gray-800 leading-tight pr-2">{item.name}</h4>
-                      <button onClick={() => removeItem(item.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                      <h4 className="text-[13px] font-bold text-gray-800 leading-tight pr-2 line-clamp-2">{item.name}</h4>
+                      <button onClick={() => removeItem(item.id)} className="text-gray-400 hover:text-red-500 bg-transparent border-none cursor-pointer flex-shrink-0 mt-0.5"><Trash2 className="w-4 h-4" /></button>
                     </div>
-                    <p className="text-[#e4252b] font-bold text-xs mt-1">{(item.price || 0).toLocaleString()} VND</p>
+                    <p className="text-[#e4252b] font-black text-xs mt-1.5">{(item.price || 0).toLocaleString()} VND</p>
 
                     <div className="flex items-center justify-between mt-3">
-                      <div className="flex items-center border border-gray-200 rounded-md">
-                        <button onClick={() => updateQty(item.id, item.qty, -1)} className="w-7 h-7 flex justify-center items-center text-gray-500 hover:bg-gray-50"><Minus className="w-3 h-3" /></button>
-                        <span className="text-xs font-semibold w-7 text-center">{item.qty}</span>
-                        <button onClick={() => updateQty(item.id, item.qty, 1)} className="w-7 h-7 flex justify-center items-center text-gray-500 hover:bg-gray-50"><Plus className="w-3 h-3" /></button>
+                      <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white">
+                        <button onClick={() => updateQty(item.id, item.qty, -1)} className="w-7 h-7 flex justify-center items-center text-gray-500 hover:bg-gray-50 bg-white border-none cursor-pointer"><Minus className="w-3 h-3" /></button>
+                        <span className="text-xs font-bold w-8 text-center border-x border-gray-200 h-7 flex items-center justify-center bg-gray-50">{item.qty}</span>
+                        <button onClick={() => updateQty(item.id, item.qty, 1)} className="w-7 h-7 flex justify-center items-center text-gray-500 hover:bg-gray-50 bg-white border-none cursor-pointer"><Plus className="w-3 h-3" /></button>
                       </div>
-                      <span className="text-sm font-semibold text-gray-700">{((item.price || 0) * item.qty).toLocaleString()} VND</span>
+                      <span className="text-[13px] font-black text-gray-800">{((item.price || 0) * item.qty).toLocaleString()} Đ</span>
                     </div>
                   </div>
                 </div>
@@ -532,18 +540,18 @@ const ProductDetail = () => {
             )}
           </div>
 
-          <div className="p-6 border-t border-gray-100 bg-gray-50/50">
-            <div className="flex justify-between items-center mb-2 text-sm text-gray-600"><span>Tạm tính</span><span className="font-semibold">{subtotal.toLocaleString()} VND</span></div>
+          <div className="p-6 border-t border-gray-100 bg-white shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+            <div className="flex justify-between items-center mb-2 text-sm text-gray-500 font-medium"><span>Tạm tính</span><span className="font-bold text-gray-700">{subtotal.toLocaleString()} VND</span></div>
             <div className="flex justify-between items-center mb-6">
-              <span className="font-bold text-gray-800 text-sm">Tổng cộng</span>
+              <span className="font-black text-gray-800 text-sm">Tổng thanh toán</span>
               <span className="text-xl font-black text-[#e4252b]">{total.toLocaleString()} VND</span>
             </div>
 
             <button
               onClick={handleCheckout}
-              className="w-full py-3 rounded-md bg-[#008061] text-white text-sm font-bold hover:bg-[#006c52] transition-colors mb-3 cursor-pointer"
+              className="w-full py-3.5 rounded-xl bg-[#008061] text-white text-sm font-bold hover:bg-[#006c52] transition-colors cursor-pointer border-none shadow-lg shadow-[#008061]/20 flex items-center justify-center gap-2"
             >
-              Thanh Toán →
+              Tiến Hành Thanh Toán
             </button>
           </div>
         </aside>
