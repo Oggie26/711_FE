@@ -488,7 +488,7 @@ const ProductManager = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Trọng lượng (kg)</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Trọng lượng (gam)</label>
                 <input type="number" step="0.01" min="0" value={formData.weight} onChange={(e) => setFormData({ ...formData, weight: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#008061]/10 focus:border-[#008061] transition-all" placeholder="0.5" />
               </div>
               <div>
