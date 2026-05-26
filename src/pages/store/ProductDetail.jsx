@@ -425,7 +425,7 @@ const ProductDetail = () => {
                         {product.weight && (
                           <div className="flex items-center gap-2">
                             <span className="text-gray-400 font-medium">Trọng lượng:</span>
-                            <span className="text-gray-700 font-bold">{product.weight} kg</span>
+                            <span className="text-gray-700 font-bold">{product.weight} gam</span>
                           </div>
                         )}
                         <div className="flex items-center gap-2">
@@ -451,7 +451,6 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              {/* SẢN PHẨM CÙNG LOẠI ĐỘNG */}
               <div className="w-full mt-4">
                 <div className="flex justify-between items-center mb-5">
                   <h3 className="text-xl font-black text-gray-800 tracking-tight">Sản phẩm cùng danh mục</h3>
@@ -494,7 +493,6 @@ const ProductDetail = () => {
           )}
         </main>
 
-        {/* SIDEBAR GIỎ HÀNG THỜI GIAN THỰC */}
         <aside className={`fixed top-[124px] right-0 bottom-0 w-[380px] bg-white border-l border-gray-200 shadow-xl z-40 flex flex-col transform transition-transform duration-300 ${cartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
             <h2 className="text-base font-bold text-gray-800">Giỏ Hàng Của Bạn</h2>

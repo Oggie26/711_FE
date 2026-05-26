@@ -108,7 +108,6 @@ const CategoryManager = () => {
         }
     };
 
-    // Hàm xử lý xóa chính thức khi bấm xác nhận trên Modal mới
     const handleConfirmDelete = async () => {
         if (!deleteConfirmId) return;
 
@@ -116,9 +115,9 @@ const CategoryManager = () => {
         try {
             await CategoryService.deleteCategory(deleteConfirmId);
             toast.success('Đã xóa danh mục khỏi hệ thống thành công!', { id: delToast });
-            setDeleteConfirmId(null); // Đóng modal xóa
-            setDrawerOpen(false); // Đóng luôn cả bản điều khiển drawer nếu đang mở
-            fetchCategories(); // Reload data
+            setDeleteConfirmId(null);
+            setDrawerOpen(false);
+            fetchCategories();
         } catch (error) {
             toast.error(error || 'Không thể xóa danh mục này!', { id: delToast });
         }
@@ -151,7 +150,6 @@ const CategoryManager = () => {
         <div className="w-full">
             <Toaster position="bottom-right" reverseOrder={false} containerStyle={{ zIndex: 99999 }} />
 
-            {/* TIÊU ĐỀ TRANG VÀ NÚT THÊM MỚI */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                 <div>
                     <h1 className="text-2xl font-black text-slate-900 m-0 tracking-tight">Quản lý danh mục</h1>
@@ -170,7 +168,6 @@ const CategoryManager = () => {
                 </button>
             </div>
 
-            {/* THẺ THÔNG SỐ */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/60 flex items-center gap-4 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
                     <div className="w-12 h-12 rounded-xl bg-[#008061]/8 text-[#008061] flex items-center justify-center flex-shrink-0"><Layers className="w-6 h-6" /></div>
@@ -195,7 +192,6 @@ const CategoryManager = () => {
                 </div>
             </div>
 
-            {/* THANH TÌM KIẾM */}
             <div className="mb-6 max-w-md relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Search className="text-slate-400 w-4 h-4" />
@@ -212,7 +208,6 @@ const CategoryManager = () => {
                 />
             </div>
 
-            {/* BẢNG HIỂN THỊ */}
             <div className="bg-white border border-slate-200/60 rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.01)]">
                 <div className="overflow-x-auto">
                     {loading ? (
@@ -307,7 +302,6 @@ const CategoryManager = () => {
                 </div>
             </div>
 
-            {/* === HỆ THỐNG MODAL XÁC NHẬN XÓA CAO CẤP (THAY THẾ WINDOW.CONFIRM) === */}
             {deleteConfirmId !== null && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fade-in">
                     <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-sm shadow-2xl p-6 text-center font-semibold transform transition-all scale-100">
@@ -338,7 +332,6 @@ const CategoryManager = () => {
                 </div>
             )}
 
-            {/* DRAWER PANEL CONTROLS */}
             {drawerOpen && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 transition-opacity" onClick={() => setDrawerOpen(false)}></div>
             )}
@@ -437,7 +430,7 @@ const CategoryManager = () => {
                                 <button
                                     type="button"
                                     disabled={uploading}
-                                    onClick={() => setDeleteConfirmId(selectedCategory.id)} // Đã cập nhật kích hoạt Modal xóa thay vì window.confirm
+                                    onClick={() => setDeleteConfirmId(selectedCategory.id)}
                                     className="w-full bg-red-50 border border-red-200 text-red-600 hover:bg-red-100/60 h-11 rounded-xl transition-colors cursor-pointer text-xs font-bold disabled:opacity-50"
                                 >
                                     <Trash2 className="w-3.5 h-3.5 inline mr-1" /> Xóa bỏ danh mục hoàn toàn

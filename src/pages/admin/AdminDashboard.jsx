@@ -42,7 +42,7 @@ const AdminDashboard = () => {
         ];
         const monthlyData = allMonths.map(monthObj => {
           const found = salesRes.find(item => {
-            const m = item.month || item._id; // _id is sometimes used in aggregation
+            const m = item.month || item._id;
             if (typeof m === 'number') return m === monthObj.num;
             if (typeof m === 'string') {
               return m.substring(0, 3).toLowerCase() === monthObj.label.toLowerCase() ||
@@ -60,11 +60,11 @@ const AdminDashboard = () => {
         const allDays = [
           { label: "Mon", num: 2 }, { label: "Tue", num: 3 }, { label: "Wed", num: 4 },
           { label: "Thu", num: 5 }, { label: "Fri", num: 6 }, { label: "Sat", num: 7 },
-          { label: "Sun", num: 1 } // MongoDB $dayOfWeek: 1 is Sunday
+          { label: "Sun", num: 1 }
         ];
         const weeklyData = allDays.map(dayObj => {
           const found = salesRes.find(item => {
-            const d = item.dayOfWeek || item.day || item._id; // handling various backend formats
+            const d = item.dayOfWeek || item.day || item._id;
             if (typeof d === 'number') return d === dayObj.num;
             if (typeof d === 'string') {
               return d.substring(0, 3).toLowerCase() === dayObj.label.toLowerCase() ||
@@ -120,7 +120,6 @@ const AdminDashboard = () => {
               {salesData.map((item, index) => {
                 const gap = (chartWidth - (salesData.length * barWidth)) / (salesData.length + 1);
                 const x = gap + index * (barWidth + gap);
-                // Cột giá trị 0 vẫn hiện 4px, cột có dữ liệu dùng calc để nổi bật hơn
                 const barHeight = item.amount === 0 ? 4 : Math.max(20, (item.amount / maxAmount) * 160);
                 const y = chartHeight - barHeight;
 

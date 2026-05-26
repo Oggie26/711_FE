@@ -77,7 +77,6 @@ const ProductManager = () => {
     fetchAllCategories();
   }, []);
 
-  // Upload ảnh Thumbnail chính (1 ảnh)
   const handleThumbnailChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -103,7 +102,6 @@ const ProductManager = () => {
     }
   };
 
-  // === ĐÃ NÂNG CẤP: Hàm xử lý upload NHIỀU ẢNH chi tiết cùng một lúc ===
   const handleDetailImagesChange = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -411,7 +409,6 @@ const ProductManager = () => {
                 </tbody>
               </table>
 
-              {/* PAGINATION */}
               <div className="px-6 py-4 flex items-center justify-between border-t border-slate-100 text-sm font-semibold text-slate-500 select-none bg-slate-50/50">
                 <div>Hiển thị bản ghi từ <span className="text-slate-900 font-bold">{currentPage * pageSize + 1}</span> đến <span className="text-slate-900 font-bold">{Math.min((currentPage + 1) * pageSize, totalElements)}</span> trên tổng số <span className="text-slate-900 font-bold">{totalElements}</span> mục</div>
                 <div className="flex items-center gap-1.5">
@@ -425,7 +422,6 @@ const ProductManager = () => {
         </div>
       </div>
 
-      {/* POPUP MODAL PHÓNG TO HÌNH ẢNH */}
       {zoomImageUrl && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[200] flex items-center justify-center p-4" onClick={() => setZoomImageUrl(null)}>
           <div className="relative bg-white p-2 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
@@ -435,7 +431,6 @@ const ProductManager = () => {
         </div>
       )}
 
-      {/* DRAWER SLIDE-OVER CONTROL */}
       {drawerOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 transition-opacity" onClick={() => setDrawerOpen(false)}></div>
       )}
@@ -505,7 +500,6 @@ const ProductManager = () => {
               </div>
             </div>
 
-            {/* KHU VỰC 1: UPLOAD & PREVIEW ẢNH ĐẠI DIỆN THUMBNAIL (BẮT BUỘC - 1 ẢNH) */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2">Hình ảnh Thumbnail đại diện chính (*)</label>
               <div className="flex flex-col gap-3">
@@ -529,28 +523,23 @@ const ProductManager = () => {
               </div>
             </div>
 
-            {/* === KHU VỰC 2: NÂNG CẤP CHỌN VÀ HIỂN THỊ HÀNG LOẠT ẢNH CHI TIẾT (MULTIPLE UPLOAD) === */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Bộ sưu tập loạt ảnh chi tiết khác (Chọn được nhiều ảnh)</label>
               <div className="flex flex-col gap-3">
-                {/* Khu vực bấm chọn thêm ảnh (Luôn hiện để Admin bấm chọn thêm tiếp) */}
                 <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-[#008061]/50 transition-all group">
                   <div className="flex flex-col items-center justify-center text-center px-4">
                     <Upload className="w-6 h-6 text-slate-400 group-hover:text-[#008061] transition-colors mb-1" />
                     <p className="text-xs text-slate-600 font-bold m-0">Giữ Ctrl / Quét chọn nhiều file ảnh</p>
                   </div>
-                  {/* Bổ sung thuộc tính multiple để nhận diện chọn nhiều file cùng lúc */}
                   <input type="file" accept="image/*" multiple onChange={handleDetailImagesChange} className="hidden" disabled={uploadingDetail} />
                 </label>
 
-                {/* Grid layout hiển thị toàn bộ loạt ảnh chi tiết đã up lên Cloudinary */}
                 {formData.imageUrls.length > 0 && (
                   <div className="grid grid-cols-3 gap-2 mt-1">
                     {formData.imageUrls.map((url, index) => (
                       <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 group/gridImg">
                         <img src={url} alt={`Detail ${index}`} className="w-full h-full object-cover" />
 
-                        {/* Menu nhỏ đè lên ảnh khi hover để xem bự hoặc bấm xóa */}
                         <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/gridImg:opacity-100 flex items-center justify-center gap-2 transition-opacity duration-150">
                           <button type="button" onClick={() => setZoomImageUrl(url)} className="w-7 h-7 bg-white rounded-lg flex items-center justify-center border-none cursor-pointer text-slate-800 hover:bg-slate-100"><Eye className="w-3.5 h-3.5" /></button>
                           <button type="button" onClick={() => handleRemoveDetailImage(index)} className="w-7 h-7 bg-red-600 rounded-lg flex items-center justify-center border-none cursor-pointer text-white hover:bg-red-700"><X className="w-3.5 h-3.5" /></button>
@@ -580,7 +569,6 @@ const ProductManager = () => {
         </div>
       </div>
 
-      {/* MODAL XÁC NHẬN XÓA */}
       {deleteConfirmId !== null && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
           <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden p-6 text-center font-semibold">

@@ -9,12 +9,10 @@ const OrderManager = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  // --- STATE PHÂN TRANG ---
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --- STATE THỐNG KÊ TOÀN HỆ THỐNG ---
   const [globalStats, setGlobalStats] = useState({
     total: 0,
     completed: 0,
@@ -24,10 +22,9 @@ const OrderManager = () => {
 
   useEffect(() => {
     fetchOrders("", 0);
-    fetchGlobalStats(""); // Chạy ngầm tính toán thống kê tổng khi vừa vào trang
+    fetchGlobalStats("");
   }, []);
 
-  // Hàm 1: Lấy dữ liệu phân trang hiển thị lên bảng (10 đơn/trang)
   const fetchOrders = async (keyword = searchTerm, page = 0) => {
     setLoading(true);
     try {
@@ -46,10 +43,8 @@ const OrderManager = () => {
     }
   };
 
-  // 🔥 Hàm 2: Gọi ngầm quét toàn bộ dữ liệu để tính số liệu TỔNG TẤT CẢ CÁC TRANG
   const fetchGlobalStats = async (keyword = "") => {
     try {
-      // Vác size=9999 để quét sạch đơn hàng phục vụ tính toán doanh thu tổng
       const response = await OrderService.searchOrders(keyword, 0, 9999);
       const responseData = response?.data || {};
       const allOrders = responseData.data || responseData.content || responseData || [];
@@ -59,7 +54,7 @@ const OrderManager = () => {
           acc.total += 1;
           if (order.status === 'PAYMENT_SUCCESS') {
             acc.completed += 1;
-            acc.revenue += (order.totalPrice || 0); // Chỉ cộng doanh thu của đơn thành công
+            acc.revenue += (order.totalPrice || 0);
           } else if (order.status === 'CANCELLED' || order.status === 'PAYMENT_FAILED') {
             acc.cancelled += 1;
           }
@@ -77,7 +72,7 @@ const OrderManager = () => {
     const value = e.target.value;
     setSearchTerm(value);
     fetchOrders(value, 0);
-    fetchGlobalStats(value); // Cập nhật lại bộ thống kê tổng theo từ khóa tìm kiếm
+    fetchGlobalStats(value);
   };
 
   const handleViewDetail = async (order) => {
@@ -139,7 +134,6 @@ const OrderManager = () => {
         <h1 className="text-2xl font-black text-slate-900 tracking-tight">Quản lý đơn hàng</h1>
       </div>
 
-      {/* --- BOX THỐNG KÊ TOÀN HỆ THỐNG (TẤT CẢ CÁC TRANG) --- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         {[
           { title: "Tổng đơn hệ thống", val: globalStats.total, icon: ShoppingBag, color: "text-sky-600" },
@@ -168,7 +162,6 @@ const OrderManager = () => {
         />
       </div>
 
-      {/* KHUNG BẢNG DATA */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -224,7 +217,6 @@ const OrderManager = () => {
           </table>
         </div>
 
-        {/* --- UI PHÂN TRANG --- */}
         {!loading && totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-white">
             <p className="text-xs text-slate-500 font-bold">
@@ -245,8 +237,8 @@ const OrderManager = () => {
                   key={i}
                   onClick={() => fetchOrders(searchTerm, i)}
                   className={`w-9 h-9 rounded-xl text-xs font-black border transition-all cursor-pointer ${currentPage === i
-                      ? 'bg-[#008061] text-white border-[#008061] shadow-md shadow-[#008061]/10'
-                      : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                    ? 'bg-[#008061] text-white border-[#008061] shadow-md shadow-[#008061]/10'
+                    : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
                     }`}
                 >
                   {i + 1}
@@ -265,7 +257,6 @@ const OrderManager = () => {
         )}
       </div>
 
-      {/* DRAWER CHI TIẾT */}
       {drawerOpen && selectedOrder && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />

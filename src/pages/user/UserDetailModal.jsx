@@ -31,7 +31,6 @@ const UserDetailModal = ({ userId, onClose }) => {
                 className="bg-white rounded-3xl p-8 w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden"
                 onClick={e => e.stopPropagation()}
             >
-                {/* Header Section */}
                 <div className="flex justify-between items-start mb-8">
                     <div>
                         <h3 className="text-2xl font-extrabold text-slate-800">Thông tin</h3>
@@ -48,7 +47,6 @@ const UserDetailModal = ({ userId, onClose }) => {
                     </div>
                 ) : user ? (
                     <div className="space-y-6">
-                        {/* Avatar & Main Info */}
                         <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl">
                             <div className="w-14 h-14 rounded-full bg-[#008061]/10 flex items-center justify-center">
                                 <User className="w-7 h-7 text-[#008061]" />
@@ -61,7 +59,6 @@ const UserDetailModal = ({ userId, onClose }) => {
                             </div>
                         </div>
 
-                        {/* Grid Info */}
                         <div className="grid grid-cols-2 gap-4">
                             <InfoItem icon={Mail} label="Email" value={user.email} colSpan />
                             <InfoItem icon={Phone} label="Điện thoại" value={user.phone} />

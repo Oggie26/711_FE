@@ -59,7 +59,6 @@ const UserProfile = () => {
                 </div>
             </header>
 
-            {/* MAIN */}
             <main className="pt-[120px] pb-12 max-w-6xl mx-auto px-6">
                 <h1 className="text-4xl font-black text-slate-800 mb-8">Tài khoản của tôi</h1>
 

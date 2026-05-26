@@ -68,8 +68,7 @@ const Checkout = () => {
                 return;
             }
             if (paymentMethod === 'CASH') {
-                toast.success("Đặt hàng thành công!");
-                navigate("/")
+                navigate("/", { state: { successOrder: true } });
             }
 
         } catch (error) {

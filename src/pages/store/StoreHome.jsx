@@ -4,7 +4,7 @@ import {
   Coffee, Cookie, Utensils, Milk, Smile, Star, Headphones,
   User, LogIn, ChevronDown, LogOut, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import ProductService from '../../service/product/productService';
 import CategoryService from '../../service/category/categoryService';
@@ -21,7 +21,15 @@ const categoryStyleMap = {
 
 const StorePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const searchContainerRef = useRef(null);
+
+  useEffect(() => {
+    if (location.state?.successOrder) {
+      toast.success("🎉 Đặt hàng thành công! Cảm ơn bạn đã mua sắm tại 7-Eleven.", { duration: 4000 });
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   const [cartOpen, setCartOpen] = useState(false);
   const [products, setProducts] = useState([]);
@@ -48,10 +56,10 @@ const StorePage = () => {
       } else {
         prodResponse = await ProductService.searchProducts(keyword, page, 20);
       }
-      
+
       const responseData = prodResponse?.data || prodResponse || {};
       const resData = responseData.data || responseData.content || responseData || [];
-      
+
       setProducts(Array.isArray(resData) ? resData : (resData.content || []));
       setTotalPages(responseData.totalPages || 1);
       setCurrentPage(responseData.page || responseData.number || page);
@@ -382,7 +390,6 @@ const StorePage = () => {
               </div>
             </div>
 
-            {/* DANH MỤC */}
             <div className="mb-10">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-800">Mua Sắm Theo Danh Mục</h3>
@@ -402,7 +409,6 @@ const StorePage = () => {
               </div>
             </div>
 
-            {/* SẢN PHẨM MÀN HÌNH CHÍNH */}
             <div className="mb-10">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-800">Sản Phẩm Cửa Hàng {selectedCategoryId && <span className="text-[#008061] text-sm ml-2">(Đang lọc theo danh mục)</span>}</h3>
@@ -457,7 +463,6 @@ const StorePage = () => {
                 )}
               </div>
 
-              {/* PHÂN TRANG */}
               {!loading && totalPages > 1 && (
                 <div className="flex justify-center items-center gap-2 mt-10">
                   <button
@@ -467,14 +472,14 @@ const StorePage = () => {
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  
+
                   {[...Array(totalPages)].map((_, i) => (
                     <button
                       key={i}
                       onClick={() => fetchStoreProducts(i)}
                       className={`w-10 h-10 rounded-xl text-sm font-bold border transition-all cursor-pointer ${currentPage === i
-                          ? 'bg-[#008061] text-white border-[#008061] shadow-md shadow-[#008061]/20'
-                          : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                        ? 'bg-[#008061] text-white border-[#008061] shadow-md shadow-[#008061]/20'
+                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                         }`}
                     >
                       {i + 1}
@@ -492,7 +497,6 @@ const StorePage = () => {
               )}
             </div>
 
-            {/* FEATURES FOOTER */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-8 border-t border-gray-200 pb-8">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-full bg-green-50 text-[#008061]"><Truck className="w-5 h-5" /></div>
@@ -518,7 +522,6 @@ const StorePage = () => {
           </div>
         </main>
 
-        {/* SIDEBAR GIỎ HÀNG THỜI GIAN THỰC */}
         <aside
           className={`fixed top-[124px] right-0 bottom-0 w-[380px] bg-white border-l border-gray-200 shadow-xl z-40 flex flex-col transform transition-transform duration-300 ${cartOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
