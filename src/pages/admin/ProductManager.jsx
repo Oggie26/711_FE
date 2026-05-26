@@ -7,7 +7,6 @@ import CategoryService from '../../service/category/categoryService';
 import { uploadToCloudinary } from '../../service/cloudinaryService';
 
 const ProductManager = () => {
-  // States quản lý danh sách sản phẩm động từ API
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);

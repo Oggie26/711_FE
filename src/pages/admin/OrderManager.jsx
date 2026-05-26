@@ -9,7 +9,6 @@ const OrderManager = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  // --- STATE PHÂN TRANG & TÌM KIẾM ---
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -18,7 +17,6 @@ const OrderManager = () => {
     fetchOrders("", 0);
   }, []);
 
-  // Cập nhật hàm fetch có truyền page và size = 10
   const fetchOrders = async (keyword = searchTerm, page = 0) => {
     setLoading(true);
     try {

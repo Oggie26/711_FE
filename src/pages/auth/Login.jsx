@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, User, ArrowLeft, Phone, Calendar, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
-import AuthService from '../../service/auth/AuthService';
+import AuthService from '../../service/auth/authService';
 import { jwtDecode } from "jwt-decode";
 
 const AuthPage = () => {
