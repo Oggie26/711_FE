@@ -12,6 +12,7 @@ import ProductManager from './pages/admin/ProductManager';
 import OrderManager from './pages/admin/OrderManager';
 import CategoryManager from './pages/admin/CategoryManager';
 import UserManager from './pages/admin/UserManager';
+import PaymentSuccess from './pages/payment/PaymentSuccess';
 const App = () => {
   return (
     <BrowserRouter>
@@ -21,6 +22,7 @@ const App = () => {
         <Route path="/product/:slug" element={<ProductDetail />} />
         <Route path='/profile' element={<UserProfile />} />
         <Route path="/checkout" element={<CheckOut />} />
+        <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
