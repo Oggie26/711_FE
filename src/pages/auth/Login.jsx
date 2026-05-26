@@ -38,7 +38,7 @@ const AuthPage = () => {
       fullName: '',
       phone: '',
       birthday: '',
-      gender: true // Reset giới tính khi chuyển chế độ
+      gender: true
     });
   };
 
@@ -59,7 +59,7 @@ const AuthPage = () => {
           fullName: formData.fullName,
           phone: formData.phone,
           birthday: formData.birthday || null,
-          gender: formData.gender, // Đưa giới tính vào payload
+          gender: formData.gender,
           point: 0
         };
 
@@ -67,7 +67,6 @@ const AuthPage = () => {
 
         toast.success('Đăng ký tài khoản thành công! 🎉');
         setIsRegister(false);
-        // Reset form đăng ký
         setFormData({ email: '', password: '', confirmPassword: '', fullName: '', phone: '', birthday: '', gender: true });
       } catch (error) {
         toast.error(error?.message || 'Đăng ký thất bại, thử lại sau!');
@@ -101,7 +100,6 @@ const AuthPage = () => {
 
       <Toaster position="top-right" reverseOrder={false} />
 
-      {/* Nút quay lại trang chủ */}
       <button
         onClick={() => navigate('/')}
         className="absolute top-6 left-6 z-50 flex items-center gap-2 text-gray-600 hover:text-[#008061] bg-white shadow-md border border-gray-100 px-4 py-2 rounded-full transition-all text-sm font-bold active:scale-95"
@@ -109,7 +107,6 @@ const AuthPage = () => {
         <ArrowLeft className="w-4 h-4" /> Trang chủ
       </button>
 
-      {/* KHUNG TRÁI: HÌNH ẢNH */}
       <div className="hidden lg:flex w-1/2 relative bg-[#008061] overflow-hidden">
         <img
           src="https://images.unsplash.com/photo-1601599561096-f87c95fff1e9?q=80&w=1200"
@@ -129,7 +126,6 @@ const AuthPage = () => {
         </div>
       </div>
 
-      {/* KHUNG PHẢI: FORM */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-[#f9fafb]">
         <div className="w-full max-w-[440px] bg-white p-8 sm:p-10 rounded-3xl shadow-[0_4px_25px_rgba(0,0,0,0.04)] border border-gray-100 mt-12 lg:mt-0">
 
@@ -143,7 +139,6 @@ const AuthPage = () => {
 
           <form onSubmit={onFinish} className="flex flex-col gap-4">
 
-            {/* HỌ VÀ TÊN */}
             {isRegister && (
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -162,7 +157,6 @@ const AuthPage = () => {
               </div>
             )}
 
-            {/* SỐ ĐIỆN THOẠI */}
             {isRegister && (
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -181,7 +175,6 @@ const AuthPage = () => {
               </div>
             )}
 
-            {/* NGÀY SINH */}
             {isRegister && (
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -192,14 +185,12 @@ const AuthPage = () => {
                   name="birthday"
                   value={formData.birthday}
                   onChange={handleChange}
-                  // Ngăn chọn ngày trong tương lai
                   max={new Date().toISOString().split("T")[0]}
                   className={inputTailwindClass}
                 />
               </div>
             )}
 
-            {/* GIỚI TÍNH - Đã căn chỉnh lại cho cân đối */}
             {isRegister && (
               <div className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-4 py-3.5 flex items-center justify-center gap-12 transition-all">
                 <label className="flex items-center gap-3 cursor-pointer active:scale-95 transition-transform">
@@ -228,7 +219,6 @@ const AuthPage = () => {
               </div>
             )}
 
-            {/* EMAIL */}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Mail className="w-5 h-5 text-gray-400" />
@@ -244,7 +234,6 @@ const AuthPage = () => {
               />
             </div>
 
-            {/* MẬT KHẨU */}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Lock className="w-5 h-5 text-gray-400" />
@@ -260,7 +249,6 @@ const AuthPage = () => {
                 minLength="6"
                 maxLength="50"
               />
-              {/* Nút ẩn/hiện mật khẩu */}
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -270,7 +258,6 @@ const AuthPage = () => {
               </button>
             </div>
 
-            {/* XÁC NHẬN MẬT KHẨU */}
             {isRegister && (
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -288,7 +275,6 @@ const AuthPage = () => {
               </div>
             )}
 
-            {/* NÚT SUBMIT */}
             <button
               disabled={loading}
               type="submit"
@@ -303,7 +289,6 @@ const AuthPage = () => {
 
           </form>
 
-          {/* CHUYỂN ĐỔI CHẾ ĐỘ ĐĂNG NHẬP / ĐĂNG KÝ */}
           <div className="text-center mt-6 flex items-center justify-center gap-2 text-sm">
             <span className="text-gray-500 font-medium">
               {isRegister ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'}

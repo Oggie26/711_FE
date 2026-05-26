@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import UserService from '../../service/user/UserService';
+import UserService from '../../service/user/userService';
 import { X, User, Mail, Shield, Calendar, Phone, Star, Hash } from 'lucide-react';
 
 const UserDetailModal = ({ userId, onClose }) => {

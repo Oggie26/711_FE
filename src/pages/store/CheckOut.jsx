@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { CreditCard, Banknote, ShieldCheck, ChevronLeft, ArrowRight, ShoppingBag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import OrderService from '../../service/order/OrderService';
-import CartService from '../../service/cart/cartService'; // Đã import CartService
+import OrderService from '../../service/order/orderService';
+import CartService from '../../service/cart/cartService';
 
 const Checkout = () => {
     const navigate = useNavigate();

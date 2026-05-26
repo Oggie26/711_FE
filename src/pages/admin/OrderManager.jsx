@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Eye, X, DollarSign, ShoppingBag, CheckCircle, Clock, User as UserIcon, CreditCard, Banknote, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
-import OrderService from '../../service/order/OrderService';
+import OrderService from '../../service/order/orderService';
 
 const OrderManager = () => {
   const [orders, setOrders] = useState([]);

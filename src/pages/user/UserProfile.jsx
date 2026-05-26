@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Package, Mail, Phone, Calendar, LogOut, ChevronDown, Eye, X, Clock, Star, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import UserService from '../../service/user/UserService';
-import OrderService from '../../service/order/OrderService';
+import UserService from '../../service/user/userService';
+import OrderService from '../../service/order/orderService';
 import toast, { Toaster } from 'react-hot-toast';
 
 const UserProfile = () => {
