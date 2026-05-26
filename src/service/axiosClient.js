@@ -1,13 +1,13 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://api.furnimart.click/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://103.75.183.179:8080/api',
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true,
 });
-
+// http://103.75.183.179:8080/api
 axiosClient.interceptors.request.use(
   function (config) {
     const token = localStorage.getItem('accessToken');
