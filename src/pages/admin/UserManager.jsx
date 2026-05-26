@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import UserService from '../../service/user/UserService';
+import UserService from '../../service/user/userService';
 import toast from 'react-hot-toast';
 import { Search, User as UserIcon, Eye } from 'lucide-react';
 import UserDetailModal from '../user/UserDetailModal';
