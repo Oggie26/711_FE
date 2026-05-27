@@ -10,15 +10,6 @@ import ProductService from '../../service/product/productService';
 import CategoryService from '../../service/category/categoryService';
 import CartService from '../../service/cart/cartService';
 
-const categoryStyleMap = {
-  'Đồ uống': { icon: Coffee, bg: 'bg-[#008061]' },
-  'Đồ ăn vặt': { icon: Cookie, bg: 'bg-[#f58220]' },
-  'Đồ ăn liền': { icon: Utensils, bg: 'bg-[#e4252b]' },
-  'Cà phê': { icon: Coffee, bg: 'bg-[#795548]' },
-  'Sữa': { icon: Milk, bg: 'bg-[#2196f3]' },
-  'Cá nhân': { icon: Smile, bg: 'bg-[#9c27b0]' },
-};
-
 const StorePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -102,7 +93,8 @@ const StorePage = () => {
       setLoading(true);
       try {
         const catResponse = await CategoryService.getAllCategories();
-        setCategories(catResponse || []);
+        const catList = catResponse?.data?.data || catResponse?.data || catResponse || [];
+        setCategories(catList);
         await fetchStoreProducts(0, null, '');
         await fetchUserCart();
       } catch (error) {
@@ -131,8 +123,8 @@ const StorePage = () => {
     const delayDebounceFn = setTimeout(async () => {
       try {
         const res = await ProductService.searchProducts(searchTerm, 0, 7);
-        const resData = res?.data?.data || res?.data || res || [];
-        setSuggestions(resData);
+        const resData = res?.data?.data || res?.data?.content || res?.data || res || [];
+        setSuggestions(Array.isArray(resData) ? resData : []);
       } catch (error) {
         console.error("Lỗi tải gợi ý:", error);
       }
@@ -246,13 +238,13 @@ const StorePage = () => {
   };
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
-  const shippingFee = 0;
-  const total = subtotal + shippingFee;
+  const total = subtotal;
 
   return (
     <div className="min-h-screen bg-[#f9fafb] text-gray-800 font-sans w-full flex flex-col overflow-x-hidden">
       <Toaster position="bottom-right" reverseOrder={false} containerStyle={{ zIndex: 99999 }} />
 
+      {/* HEADER NAVBAR */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="w-full px-10 h-[76px] flex items-center justify-between gap-8">
           <div className="flex flex-col cursor-pointer select-none flex-shrink-0" onClick={() => { setSearchTerm(''); window.location.reload(); }}>
@@ -263,6 +255,7 @@ const StorePage = () => {
             <span className="text-[#e4252b] text-[11px] font-bold italic -mt-1 ml-1 font-serif">Luôn mở cửa</span>
           </div>
 
+          {/* Ô TÌM KIẾM ĐỘNG */}
           <div ref={searchContainerRef} className="flex-1 max-w-2xl hidden md:block relative">
             <form onSubmit={handleSearchSubmit} className="relative group">
               <input
@@ -281,6 +274,7 @@ const StorePage = () => {
               </button>
             </form>
 
+            {/* 🔥 DROPDOWN SUGGESTIONS BOX - ĐÃ SỬA SANG ĐIỀU HƯỚNG BẰNG SLUG */}
             {showSuggestions && searchTerm.trim() && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-100 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto py-2">
                 {suggestions.length === 0 ? (
@@ -293,7 +287,9 @@ const StorePage = () => {
                         key={item.id}
                         onClick={() => {
                           setShowSuggestions(false);
-                          navigate(`/product/${item.id}`);
+                          setSearchTerm('');
+                          // 🔥 ĐỔI TỪ item.id SANG item.slug THEO ĐÚNG YÊU CẦU
+                          navigate(`/product/${item.slug}`);
                         }}
                         className="px-4 py-2.5 hover:bg-gray-50 flex items-center justify-between gap-4 cursor-pointer transition-colors border-b border-gray-50/50 last:border-none"
                       >
@@ -315,7 +311,7 @@ const StorePage = () => {
 
           <div className="flex items-center gap-4 flex-shrink-0">
             <button
-              className={`flex items-center gap-2 px-4 py-2 rounded-md border transition-all ${cartOpen ? 'border-[#e4252b] bg-red-50 text-[#e4252b]' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md border transition-all cursor-pointer ${cartOpen ? 'border-[#e4252b] bg-red-50 text-[#e4252b]' : 'border-gray-200 text-gray-700 hover:border-gray-300 bg-white'}`}
               onClick={() => setCartOpen(!cartOpen)}
             >
               <div className="relative">
@@ -331,22 +327,22 @@ const StorePage = () => {
 
             {localStorage.getItem('accessToken') ? (
               <div className="relative group">
-                <button className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-4 py-2 rounded-lg font-bold text-sm text-gray-700 hover:bg-gray-100 transition-all">
+                <button className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-4 py-2 rounded-lg font-bold text-sm text-gray-700 hover:bg-gray-100 transition-all cursor-pointer">
                   <User className="w-4 h-4 text-[#008061]" />
                   Tài khoản <ChevronDown className="w-3 h-3 text-gray-400" />
                 </button>
 
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                  <button onClick={() => navigate('/profile')} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                  <button onClick={() => navigate('/profile')} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2 cursor-pointer border-none bg-transparent">
                     <Settings className="w-4 h-4 text-[#008061]" /> Thông tin cá nhân
                   </button>
-                  <button onClick={() => { localStorage.removeItem('accessToken'); window.location.reload(); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2">
+                  <button onClick={() => { localStorage.removeItem('accessToken'); window.location.reload(); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2 cursor-pointer border-none bg-transparent">
                     <LogOut className="w-4 h-4" /> Đăng xuất
                   </button>
                 </div>
               </div>
             ) : (
-              <button onClick={() => navigate('/login')} className="flex items-center gap-2 text-sm font-bold text-white bg-[#008061] px-6 py-2.5 rounded-lg hover:bg-[#006c52] shadow-sm transition-all">
+              <button onClick={() => navigate('/login')} className="flex items-center gap-2 text-sm font-bold text-white bg-[#008061] px-6 py-2.5 rounded-lg hover:bg-[#006c52] shadow-sm transition-all cursor-pointer border-none">
                 <LogIn className="w-4 h-4" /> Đăng nhập
               </button>
             )}
@@ -359,11 +355,12 @@ const StorePage = () => {
         </div>
       </div>
 
-
+      {/* MAIN CONTAINER */}
       <div className="w-full flex pt-[124px] min-h-screen">
         <main className={`flex-1 transition-all duration-300 ${cartOpen ? 'mr-[380px]' : 'mr-0'}`}>
           <div className="p-12 w-full">
 
+            {/* BANNER KHUYẾN MÃI */}
             <div className="relative w-full rounded-2xl bg-[#fff8eb] overflow-hidden mb-10 border border-[#fdecd5]">
               <div className="relative z-10 flex flex-col md:flex-row items-center px-8 py-12 md:py-14">
                 <div className="flex-1">
@@ -375,7 +372,7 @@ const StorePage = () => {
                   <p className="text-gray-600 font-medium mb-8 max-w-sm text-[13px] leading-relaxed">
                     Đặt hàng trực tuyến các sản phẩm yêu thích và nhận giao hàng tận nơi nhanh chóng.
                   </p>
-                  <button className="px-6 py-2.5 bg-[#008061] text-white font-semibold rounded-md hover:bg-[#006c52] transition-colors flex items-center gap-2 text-sm shadow-sm">
+                  <button className="px-6 py-2.5 bg-[#008061] text-white font-semibold rounded-md hover:bg-[#006c52] transition-colors flex items-center gap-2 text-sm shadow-sm cursor-pointer border-none">
                     Mua Ngay <span className="text-lg leading-none">→</span>
                   </button>
                 </div>
@@ -390,10 +387,11 @@ const StorePage = () => {
               </div>
             </div>
 
+            {/* MUA SẮM THEO DANH MỤC */}
             <div className="mb-10">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-800">Mua Sắm Theo Danh Mục</h3>
-                <span onClick={handleClearFilter} className="text-gray-500 text-xs font-semibold hover:text-[#008061] cursor-pointer transition-colors">Xem tất cả</span>
+                <span onClick={handleClearFilter} className="text-gray-500 text-xs font-semibold hover:text-[#008061] cursor-pointer transition-colors select-none">Xem tất cả</span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-8 gap-4">
                 {categories.map((cat) => (
@@ -409,11 +407,12 @@ const StorePage = () => {
               </div>
             </div>
 
+            {/* LƯỚI SẢN PHẨM */}
             <div className="mb-10">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-800">Sản Phẩm Cửa Hàng {selectedCategoryId && <span className="text-[#008061] text-sm ml-2">(Đang lọc theo danh mục)</span>}</h3>
                 {(searchTerm || selectedCategoryId) && (
-                  <span onClick={handleClearFilter} className="text-xs font-semibold text-red-500 hover:text-red-700 cursor-pointer transition-colors">
+                  <span onClick={handleClearFilter} className="text-xs font-semibold text-red-500 hover:text-red-700 cursor-pointer transition-colors select-none">
                     Hủy lọc tìm kiếm [X]
                   </span>
                 )}
@@ -453,7 +452,7 @@ const StorePage = () => {
                             e.stopPropagation();
                             addToCart(product);
                           }}
-                          className="mt-auto w-full flex items-center justify-center gap-1.5 bg-white text-[#008061] font-semibold py-2 text-xs rounded-md border border-[#008061] hover:bg-[#008061] hover:text-white transition-colors"
+                          className="mt-auto w-full flex items-center justify-center gap-1.5 bg-white text-[#008061] font-semibold py-2 text-xs rounded-md border border-[#008061] hover:bg-[#008061] hover:text-white transition-colors cursor-pointer"
                         >
                           <ShoppingCart className="w-3.5 h-3.5" /> Thêm vào giỏ
                         </button>
@@ -463,8 +462,9 @@ const StorePage = () => {
                 )}
               </div>
 
+              {/* PHÂN TRANG */}
               {!loading && totalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-10">
+                <div className="flex justify-center items-center gap-2 mt-10 select-none">
                   <button
                     disabled={currentPage === 0}
                     onClick={() => fetchStoreProducts(currentPage - 1)}
@@ -497,7 +497,8 @@ const StorePage = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-8 border-t border-gray-200 pb-8">
+            {/* FOOTER ĐẶC ĐIỂM CỬA HÀNG */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-8 border-t border-gray-200 pb-8 select-none">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-full bg-green-50 text-[#008061]"><Truck className="w-5 h-5" /></div>
                 <div><h5 className="text-[12px] font-bold text-gray-800">Giao Hàng Nhanh</h5><p className="text-[10px] text-gray-500">Giao tận cửa nhà bạn</p></div>
@@ -522,19 +523,16 @@ const StorePage = () => {
           </div>
         </main>
 
-        <aside
-          className={`fixed top-[124px] right-0 bottom-0 w-[380px] bg-white border-l border-gray-200 shadow-xl z-40 flex flex-col transform transition-transform duration-300 ${cartOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        >
+        {/* GIỎ HÀNG SIDEBAR */}
+        <aside className={`fixed top-[76px] right-0 bottom-0 w-[380px] bg-white border-l border-gray-200 shadow-xl z-40 flex flex-col transform transition-transform duration-300 ${cartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
             <h2 className="text-base font-bold text-gray-800">Giỏ Hàng Của Bạn</h2>
-            <button onClick={() => setCartOpen(false)} className="text-gray-400 hover:text-gray-600">
-              <X className="w-5 h-5" />
-            </button>
+            <button onClick={() => setCartOpen(false)} className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer"><X className="w-5 h-5" /></button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
             {cartItems.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-gray-400">
+              <div className="h-full flex flex-col items-center justify-center text-gray-400 select-none">
                 <ShoppingCart className="w-12 h-12 opacity-20 mb-3" />
                 <p className="text-sm">Chưa có sản phẩm</p>
               </div>
@@ -546,18 +544,18 @@ const StorePage = () => {
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
-                      <h4 className="text-[13px] font-bold text-gray-800 leading-tight pr-2">{item.name}</h4>
-                      <button onClick={() => removeItem(item.id)} className="text-gray-400 hover:text-red-500">
+                      <h4 className="text-[13px] font-bold text-gray-800 leading-tight pr-2 line-clamp-2">{item.name}</h4>
+                      <button onClick={() => removeItem(item.id)} className="text-gray-400 hover:text-red-500 bg-transparent border-none cursor-pointer">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                     <p className="text-[#e4252b] font-bold text-xs mt-1">{(item.price || 0).toLocaleString()} VND</p>
 
                     <div className="flex items-center justify-between mt-3">
-                      <div className="flex items-center border border-gray-200 rounded-md">
-                        <button onClick={() => updateQty(item.id, item.qty, -1)} className="w-7 h-7 flex justify-center items-center text-gray-500 hover:bg-gray-50"><Minus className="w-3 h-3" /></button>
+                      <div className="flex items-center border border-gray-200 rounded-md bg-white">
+                        <button onClick={() => updateQty(item.id, item.qty, -1)} className="w-7 h-7 flex justify-center items-center text-gray-500 hover:bg-gray-50 bg-white border-none cursor-pointer"><Minus className="w-3 h-3" /></button>
                         <span className="text-xs font-semibold w-7 text-center">{item.qty}</span>
-                        <button onClick={() => updateQty(item.id, item.qty, 1)} className="w-7 h-7 flex justify-center items-center text-gray-500 hover:bg-gray-50"><Plus className="w-3 h-3" /></button>
+                        <button onClick={() => updateQty(item.id, item.qty, 1)} className="w-7 h-7 flex justify-center items-center text-gray-500 hover:bg-gray-50 bg-white border-none cursor-pointer"><Plus className="w-3 h-3" /></button>
                       </div>
                       <span className="text-sm font-semibold text-gray-700">{((item.price || 0) * item.qty).toLocaleString()} VND</span>
                     </div>
@@ -568,10 +566,7 @@ const StorePage = () => {
           </div>
 
           <div className="p-6 border-t border-gray-100 bg-gray-50/50">
-            <div className="flex justify-between items-center mb-2 text-sm text-gray-600">
-              <span>Tạm tính</span>
-              <span className="font-semibold">{subtotal.toLocaleString()} VND</span>
-            </div>
+            <div className="flex justify-between items-center mb-2 text-sm text-gray-600"><span>Tạm tính</span><span className="font-semibold">{subtotal.toLocaleString()} VND</span></div>
             <div className="flex justify-between items-center mb-6">
               <span className="font-bold text-gray-800 text-sm">Tổng cộng</span>
               <span className="text-xl font-black text-[#e4252b]">{total.toLocaleString()} VND</span>
@@ -579,13 +574,12 @@ const StorePage = () => {
 
             <button
               onClick={handleCheckout}
-              className="w-full py-3 rounded-md bg-[#008061] text-white text-sm font-bold hover:bg-[#006c52] transition-colors mb-3 cursor-pointer"
+              className="w-full py-3 rounded-md bg-[#008061] text-white text-sm font-bold hover:bg-[#006c52] transition-colors mb-3 cursor-pointer border-none shadow-md"
             >
               Thanh Toán →
             </button>
           </div>
         </aside>
-
       </div>
     </div>
   );

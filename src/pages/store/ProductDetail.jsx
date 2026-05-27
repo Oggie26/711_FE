@@ -255,6 +255,7 @@ const ProductDetail = () => {
               </button>
             </form>
 
+            {/* 🔥 DROPDOWN SUGGESTIONS BOX - ĐÃ ĐỔI HÀM ĐIỀU HƯỚNG SANG SLUG */}
             {showSuggestions && searchTerm.trim() && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-100 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto py-2">
                 {suggestions.length === 0 ? (
@@ -268,7 +269,8 @@ const ProductDetail = () => {
                         onClick={() => {
                           setShowSuggestions(false);
                           setSearchTerm('');
-                          navigate(`/product/${item.id}`);
+                          // 🔥 ĐỔI TỪ item.id SANG item.slug THEO ĐÚNG LOGIC ĐƯỜNG DẪN
+                          navigate(`/product/${item.slug}`);
                         }}
                         className="px-4 py-2.5 hover:bg-gray-50 flex items-center justify-between gap-4 cursor-pointer transition-colors border-b border-gray-50/50 last:border-none"
                       >
